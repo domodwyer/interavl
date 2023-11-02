@@ -38,7 +38,7 @@ impl Node {
             }
             None => {
                 // Insert the value as a new immediate descendent of self.
-                *node = Some(Box::new(Node::new(value)));
+                *node = Some(Box::new(Self::new(value)));
 
                 // Inserting this new child node cannot skew the tree in the
                 // direction of the new addition such that it requires the tree
@@ -104,11 +104,11 @@ impl Node {
         self.height
     }
 
-    pub(crate) fn left(&self) -> Option<&Node> {
+    pub(crate) fn left(&self) -> Option<&Self> {
         self.left.as_deref()
     }
 
-    pub(crate) fn right(&self) -> Option<&Node> {
+    pub(crate) fn right(&self) -> Option<&Self> {
         self.right.as_deref()
     }
 }
