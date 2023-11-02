@@ -1,4 +1,17 @@
-#![allow(unused)]
+#![deny(rustdoc::broken_intra_doc_links, rust_2018_idioms)]
+#![allow(clippy::default_constructed_unit_structs, unused)]
+#![warn(
+    clippy::clone_on_ref_ptr,
+    clippy::dbg_macro,
+    clippy::explicit_iter_loop,
+    clippy::future_not_send,
+    clippy::todo,
+    clippy::use_self,
+    missing_copy_implementations,
+    missing_debug_implementations,
+    unused_crate_dependencies,
+    unreachable_pub
+)]
 
 //   Copyright 2023 Dominic Dwyer (dom@itsallbroken.com)
 //
