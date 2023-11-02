@@ -6,6 +6,7 @@ pub(crate) fn print_dot(n: &Node) -> String {
     let mut buf = String::new();
 
     writeln!(buf, "digraph {{");
+    writeln!(buf, "node [shape=record];");
     recurse(n, &mut buf);
     writeln!(buf, "}}");
 
@@ -16,6 +17,15 @@ fn recurse<W>(n: &Node, buf: &mut W)
 where
     W: std::fmt::Write,
 {
+    writeln!(
+        buf,
+        r#"{} [label="{} | {}"];"#,
+        n.value(),
+        n.value(),
+        n.height()
+    )
+    .unwrap();
+
     for v in [n.left(), n.right()] {
         match v {
             Some(v) => {
