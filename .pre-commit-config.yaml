@@ -1,0 +1,53 @@
+---
+# pre-commit configuration
+#
+# Uses https://pre-commit.com/
+#
+# Install with:
+#
+#   pre-commit install-hooks
+#
+# Requires:
+#   - rust (cargo & clippy in path)
+#   - https://github.com/commitizen-tools/commitizen
+#
+# To run manually:
+#   pre-commit run --all
+
+repos:
+  - repo: https://github.com/domodwyer/pre-commit
+    rev: v3.5.0
+    hooks:
+      - id: rust-clippy
+        stages: [commit, push]
+
+      - id: rust-test
+        stages: [commit, push]
+
+      - id: rust-fmt
+        stages: [commit, push]
+
+      - id: rust-doc
+        stages: [push]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-executables-have-shebangs
+        stages: [commit, manual]
+      - id: check-json
+        stages: [commit, manual]
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+        stages: [commit, manual]
+      - id: check-merge-conflict
+        stages: [commit, manual]
+      - id: mixed-line-ending
+        args: ["--fix=no"]
+        stages: [commit, manual]
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: 3.12.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
