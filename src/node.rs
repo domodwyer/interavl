@@ -10,7 +10,7 @@ pub(super) enum RemoveResult<T> {
     ParentUnlink,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct Node {
     value: usize,
     left: Option<Box<Node>>,
@@ -73,22 +73,22 @@ impl Node {
         // to an already 1/-1 skewed subtree - therefore the subtree the value
         // was applied to can be used to infer which child subtree is now
         // unbalanced as a result.
-        match (balance(self), self.left.as_ref(), self.right.as_ref()) {
+        match (balance(self), self.left(), self.right()) {
             // Left-heavy
             (2, Some(l), _) if value < l.value => {
-                *self = rotate_right(self.clone()); // TODO(dom): clone is recursive!
+                call_box_self(self, rotate_right);
             }
-            (2, Some(l), _) if value > l.value => {
+            (2, Some(l), _) => {
                 self.left = Some(rotate_left(self.left.take().unwrap()));
-                *self = rotate_right(self.clone());
+                call_box_self(self, rotate_right);
             }
             // Right-heavy
             (-2, _, Some(r)) if value > r.value => {
-                *self = rotate_left(self.clone());
+                call_box_self(self, rotate_left);
             }
-            (-2, _, Some(r)) if value < r.value => {
+            (-2, _, Some(r)) => {
                 self.right = Some(rotate_right(self.right.take().unwrap()));
-                *self = rotate_left(self.clone());
+                call_box_self(self, rotate_left);
             }
             (-1..=1, _, _) => { /* The tree is well balanced */ }
             _ => unreachable!(),
@@ -246,10 +246,9 @@ fn height(n: Option<&Node>) -> u8 {
 
 fn update_height(n: &mut Node) {
     n.height = n
-        .left
-        .as_ref()
+        .left()
         .map(|v| v.height() + 1)
-        .max(n.right.as_ref().map(|v| v.height() + 1))
+        .max(n.right().map(|v| v.height() + 1))
         .unwrap_or_default()
 }
 
@@ -323,7 +322,7 @@ fn rotate_right(mut y: Box<Node>) -> Box<Node> {
 /// place.
 fn extract_subtree_min(root: &mut Box<Node>) -> Option<Box<Node>> {
     // Descend left to the leaf.
-    let v = match extract_subtree_min(root.left.as_mut()?) {
+    let v = match extract_subtree_min(root.left_mut()?) {
         Some(mut v) => Some(v),
         None => {
             // The left child is the end of the left edge.
@@ -340,7 +339,7 @@ fn extract_subtree_min(root: &mut Box<Node>) -> Option<Box<Node>> {
             //
             // Unlink the right node of the left root, which will become the new
             // left node of "root" (if any).
-            let mut left_right = root.left.as_mut().and_then(|v| v.right.take());
+            let mut left_right = root.left_mut().and_then(|v| v.right.take());
 
             std::mem::replace(&mut root.left, left_right)
         }
@@ -386,19 +385,20 @@ fn rebalance_after_remove(v: &mut Box<Node>) {
 
     // And rebalance the subtree.
     match (balance(v)) {
-        (2..) if v.left.as_deref().map(balance).unwrap_or_default() >= 0 => {
-            *v = rotate_right(v.clone()); // TODO(dom): subtree clone
+        (2..) if v.left().map(balance).unwrap_or_default() >= 0 => {
+            call_box_self(v, rotate_right);
         }
-        (2..) if v.left.as_deref().map(balance).unwrap_or_default() < 0 => {
+        (2..) => {
             v.left = v.left.take().map(rotate_left);
-            *v = rotate_right(v.clone()); // TODO(dom): subtree clone
+
+            call_box_self(v, rotate_right);
         }
-        (..=-2) if v.right.as_deref().map(balance).unwrap_or_default() <= 0 => {
-            *v = rotate_left(v.clone()); // TODO(dom): subtree clone
+        (..=-2) if v.right().map(balance).unwrap_or_default() <= 0 => {
+            call_box_self(v, rotate_left);
         }
-        (..=-2) if v.right.as_deref().map(balance).unwrap_or_default() > 0 => {
+        (..=-2) => {
             v.right = v.right.take().map(rotate_right);
-            *v = rotate_left(v.clone()); // TODO(dom): subtree clone
+            call_box_self(v, rotate_left);
         }
 
         #[allow(clippy::manual_range_patterns)]
@@ -410,6 +410,15 @@ fn rebalance_after_remove(v: &mut Box<Node>) {
     // Invariant: the absolute difference between tree heights ("balance
     // factor") cannot exceed 1 after removing a value.
     debug_assert!(balance(v).abs() <= 1);
+}
+
+/// Call `F` with the owned boxed [`Node`] value and store the result in `v`.
+fn call_box_self<F>(v: &mut Box<Node>, f: F)
+where
+    F: Fn(Box<Node>) -> Box<Node>,
+{
+    // Shove a dummy value into the &mut, which is immediately overwrote.
+    *v = f(std::mem::replace(v, Box::new(Node::new(42))))
 }
 
 #[cfg(test)]
