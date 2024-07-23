@@ -16,7 +16,10 @@ impl<T, R> IntervalTree<T, R>
 where
     R: Ord,
 {
-    pub(crate) fn insert(&mut self, range: Range<R>, value: T) -> bool {
+    pub(crate) fn insert(&mut self, range: Range<R>, value: T) -> bool
+    where
+        R: Clone,
+    {
         let interval = Interval::from(range);
         match self.0 {
             Some(ref mut v) => v.insert(interval, value),
@@ -36,7 +39,7 @@ where
 
     pub(crate) fn remove(&mut self, range: &Range<R>) -> Option<T>
     where
-        R: Debug,
+        R: Clone + Debug,
     {
         match remove_recurse(&mut self.0, range)? {
             RemoveResult::Removed(v) => Some(v),
@@ -211,7 +214,7 @@ mod tests {
     /// is well-formed.
     fn validate_tree_structure<T, R>(t: &IntervalTree<T, R>)
     where
-        R: Ord + PartialEq + Debug,
+        R: Ord + PartialEq + Debug + Clone,
         T: Debug,
     {
         let root = match t.0.as_deref() {
@@ -268,6 +271,19 @@ mod tests {
                 balance <= 1,
                 "balance={balance}, node={n:?}, stack={stack:?}"
             );
+
+            // Invariant 5: the subtree max of "n" must be equal to either the
+            // largest of the two child subtree maxes, or its own upper bound.
+            //
+            // This indirectly validates that the subtree max of "n" is
+            // greater-than-or-equal-to that of the left and right child's
+            // subtree max value.
+            let want_max = n
+                .left()
+                .map(|v| v.subtree_max())
+                .max(n.right().map(|v| v.subtree_max()))
+                .unwrap_or_else(|| n.subtree_max());
+            assert_eq!(want_max, n.subtree_max());
         }
     }
 }

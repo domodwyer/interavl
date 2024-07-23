@@ -16,10 +16,11 @@ pub(super) enum RemoveResult<T> {
 
 #[derive(Debug)]
 pub(crate) struct Node<T, R> {
+    /// Child nodes pointers.
     left: Option<Box<Node<T, R>>>,
     right: Option<Box<Node<T, R>>>,
 
-    /// The node's height.
+    /// The node's AVL height.
     ///
     /// A leaf has a height of 0.
     ///
@@ -27,13 +28,21 @@ pub(crate) struct Node<T, R> {
     /// of a balanced tree of up to 5.78*10⁷⁶ entries.
     height: u8,
 
+    /// The maximum upper bound of all intervals for the subtree rooted at this
+    /// [`Node`].
+    subtree_max: R,
+
     interval: Interval<R>,
     value: T,
 }
 
 impl<T, R> Node<T, R> {
-    pub(crate) fn new(interval: Interval<R>, value: T) -> Self {
+    pub(crate) fn new(interval: Interval<R>, value: T) -> Self
+    where
+        R: Clone,
+    {
         Self {
+            subtree_max: interval.end().clone(),
             interval,
             value,
             left: None,
@@ -44,7 +53,7 @@ impl<T, R> Node<T, R> {
 
     pub(crate) fn insert(mut self: &mut Box<Self>, interval: Interval<R>, value: T) -> bool
     where
-        R: Ord,
+        R: Ord + Clone,
     {
         let child = match interval.cmp(&self.interval) {
             Ordering::Less => &mut self.left,
@@ -66,6 +75,7 @@ impl<T, R> Node<T, R> {
                 //
                 // Update this node and skip the rebalancing checks.
                 update_height(self);
+                update_subtree_max(self);
                 return true;
             }
         };
@@ -103,6 +113,8 @@ impl<T, R> Node<T, R> {
             _ => unreachable!(),
         };
 
+        update_subtree_max(self);
+
         // Invariant: the absolute difference between tree heights ("balance
         // factor") cannot exceed 1.
         debug_assert!(balance(self).abs() <= 1);
@@ -113,7 +125,7 @@ impl<T, R> Node<T, R> {
 
     pub(super) fn remove(self: &mut Box<Self>, range: &Range<R>) -> Option<RemoveResult<T>>
     where
-        R: Ord + Debug,
+        R: Ord + Clone + Debug,
     {
         // Recurse down the subtree rooted at `self`.
         //
@@ -241,6 +253,10 @@ impl<T, R> Node<T, R> {
         &self.interval
     }
 
+    pub(crate) fn subtree_max(&self) -> &R {
+        &self.subtree_max
+    }
+
     pub(crate) fn height(&self) -> u8 {
         self.height
     }
@@ -274,6 +290,20 @@ fn update_height<T, R>(n: &mut Node<T, R>) {
         .unwrap_or_default()
 }
 
+fn update_subtree_max<T, R>(n: &mut Node<T, R>)
+where
+    R: Ord + Clone,
+{
+    let new_max = n
+        .left()
+        .map(|v| v.subtree_max())
+        .max(n.right().map(|v| v.subtree_max()));
+
+    if let Some(new_max) = new_max {
+        n.subtree_max = new_max.clone();
+    }
+}
+
 /// Compute the "balance factor" of the subtree rooted at `n`.
 ///
 /// Returns the subtree height skew / magnitude, which is a positive number when
@@ -300,15 +330,20 @@ fn balance<T, R>(n: &Node<T, R>) -> i8 {
 /// # Panics
 ///
 /// Panics if `x` has no right pointer (cannot be rotated).
-fn rotate_left<T, R>(x: &mut Box<Node<T, R>>) {
+fn rotate_left<T, R>(x: &mut Box<Node<T, R>>)
+where
+    R: Ord + Clone,
+{
     let mut p = x.right.take().unwrap();
     std::mem::swap(x, &mut p);
 
     p.right = x.left.take();
     update_height(&mut p);
+    update_subtree_max(&mut p);
 
     x.left = Some(p);
     update_height(x);
+    update_subtree_max(x);
 }
 
 /// Right rotate the given subtree rooted at `y` around the pivot point `P`.
@@ -326,21 +361,29 @@ fn rotate_left<T, R>(x: &mut Box<Node<T, R>>) {
 /// # Panics
 ///
 /// Panics if `y` has no left pointer (cannot be rotated).
-fn rotate_right<T, R>(mut y: &mut Box<Node<T, R>>) {
+fn rotate_right<T, R>(y: &mut Box<Node<T, R>>)
+where
+    R: Ord + Clone,
+{
     let mut p = y.left.take().unwrap();
     std::mem::swap(y, &mut p);
 
     p.left = y.right.take();
     update_height(&mut p);
+    update_subtree_max(&mut p);
 
     y.right = Some(p);
     update_height(y);
+    update_subtree_max(y);
 }
 
 /// Extracts the node holding the minimum subtree value in a descendent of
 /// `root`, if any, linking the right subtree of the extracted node to in its
 /// place.
-fn extract_subtree_min<T, R>(root: &mut Box<Node<T, R>>) -> Option<Box<Node<T, R>>> {
+fn extract_subtree_min<T, R>(root: &mut Box<Node<T, R>>) -> Option<Box<Node<T, R>>>
+where
+    R: Ord + Clone,
+{
     // Descend left to the leaf.
     let v = match extract_subtree_min(root.left_mut()?) {
         Some(mut v) => Some(v),
@@ -383,7 +426,7 @@ pub(super) fn remove_recurse<T, R>(
     interval: &Range<R>,
 ) -> Option<RemoveResult<T>>
 where
-    R: Ord + Debug,
+    R: Ord + Clone + Debug,
 {
     // Remove the value (if any) and rebalance the tree.
     let remove_ret = node.as_mut().and_then(|v| {
@@ -405,7 +448,10 @@ where
     Some(RemoveResult::Removed(v))
 }
 
-fn rebalance_after_remove<T, R>(v: &mut Box<Node<T, R>>) {
+fn rebalance_after_remove<T, R>(v: &mut Box<Node<T, R>>)
+where
+    R: Ord + Clone,
+{
     // Recompute the height of the relocated node.
     update_height(v);
 
@@ -432,6 +478,8 @@ fn rebalance_after_remove<T, R>(v: &mut Box<Node<T, R>>) {
         _ => unreachable!(),
     }
 
+    update_subtree_max(v);
+
     // Invariant: the absolute difference between tree heights ("balance
     // factor") cannot exceed 1 after removing a value.
     debug_assert!(balance(v).abs() <= 1);
@@ -442,11 +490,10 @@ mod tests {
     use super::*;
     use crate::dot::print_dot;
 
-    fn add_left<T, R>(
-        n: &mut Node<T, R>,
-        interval: impl Into<Interval<R>>,
-        v: T,
-    ) -> &mut Node<T, R> {
+    fn add_left<T, R>(n: &mut Node<T, R>, interval: impl Into<Interval<R>>, v: T) -> &mut Node<T, R>
+    where
+        R: Clone,
+    {
         assert!(n.left.is_none());
         n.left = Some(Box::new(Node::new(interval.into(), v)));
         n.left.as_mut().unwrap()
@@ -456,7 +503,10 @@ mod tests {
         n: &mut Node<T, R>,
         interval: impl Into<Interval<R>>,
         v: T,
-    ) -> &mut Node<T, R> {
+    ) -> &mut Node<T, R>
+    where
+        R: Clone,
+    {
         assert!(n.right.is_none());
         n.right = Some(Box::new(Node::new(interval.into(), v)));
         n.right.as_mut().unwrap()

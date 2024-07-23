@@ -11,6 +11,12 @@ use std::{
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Interval<T>(Range<T>);
 
+impl<T> Interval<T> {
+    pub(crate) fn end(&self) -> &T {
+        &self.0.end
+    }
+}
+
 impl<T> PartialOrd for Interval<T>
 where
     T: Ord + Eq,
