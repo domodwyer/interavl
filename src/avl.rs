@@ -1,32 +1,44 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Debug, ops::Range};
 
-use crate::node::{remove_recurse, Node, RemoveResult};
+use crate::{
+    interval::Interval,
+    node::{remove_recurse, Node, RemoveResult},
+};
 
 #[derive(Debug, Default)]
-pub(crate) struct IntervalTree(Option<Box<Node>>);
+pub(crate) struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
 
 // TODO(dom): iter, range iter
 
-impl IntervalTree {
-    pub(crate) fn insert(&mut self, value: usize) -> bool {
+// TODO(dom): entry + entry_mut -> Vec
+
+impl<T, R> IntervalTree<T, R>
+where
+    R: Ord,
+{
+    pub(crate) fn insert(&mut self, range: Range<R>, value: T) -> bool {
+        let interval = Interval::from(range);
         match self.0 {
-            Some(ref mut v) => v.insert(value),
+            Some(ref mut v) => v.insert(interval, value),
             None => {
-                self.0 = Some(Box::new(Node::new(value)));
+                self.0 = Some(Box::new(Node::new(interval, value)));
                 true
             }
         }
     }
 
-    pub(crate) fn contains(&self, value: usize) -> bool {
+    pub(crate) fn contains(&self, range: &Range<R>) -> bool {
         self.0
             .as_ref()
-            .map(|v| v.contains(value))
+            .map(|v| v.contains(range))
             .unwrap_or_default()
     }
 
-    pub(crate) fn remove(&mut self, value: usize) -> Option<usize> {
-        match remove_recurse(&mut self.0, value)? {
+    pub(crate) fn remove(&mut self, range: &Range<R>) -> Option<T>
+    where
+        R: Debug,
+    {
+        match remove_recurse(&mut self.0, range)? {
             RemoveResult::Removed(v) => Some(v),
             RemoveResult::ParentUnlink => unreachable!(),
         }
@@ -40,100 +52,45 @@ mod tests {
     use proptest::prelude::*;
 
     use super::*;
-    use crate::dot::print_dot;
+    use crate::{dot::print_dot, test_utils::arbitrary_range};
 
     #[test]
     fn test_insert_contains() {
         let mut t = IntervalTree::default();
 
-        t.insert(42);
-        t.insert(22);
-        t.insert(25);
+        t.insert(42..45, 1);
+        t.insert(22..23, 2);
+        t.insert(25..29, 3);
 
-        assert!(t.contains(42));
-        assert!(t.contains(22));
-        assert!(t.contains(25));
+        assert!(t.contains(&(42..45)));
+        assert!(t.contains(&(22..23)));
+        assert!(t.contains(&(25..29)));
 
-        assert!(!t.contains(26));
-        assert!(!t.contains(43));
-        assert!(!t.contains(41));
-
-        validate_tree_structure(&t);
-    }
-
-    #[test]
-    fn test_insert_remove_contains() {
-        const N: usize = 50;
-
-        let mut t = IntervalTree::default();
-
-        for i in 0..N {
-            t.insert(i);
-        }
-
-        for i in 0..(N / 2) {
-            t.remove(i);
-        }
-
-        for i in 0..(N / 2) {
-            assert!(!t.contains(i));
-        }
-
-        for i in (N / 2)..N {
-            assert!(t.contains(i));
-        }
+        // Does not contain slight bounding variations of the first insert.
+        assert!(!t.contains(&(42..46)));
+        assert!(!t.contains(&(42..44)));
+        assert!(!t.contains(&(41..45)));
+        assert!(!t.contains(&(43..45)));
 
         validate_tree_structure(&t);
-    }
-
-    #[test]
-    fn test_update_after_subtree_min_extract() {
-        let values = [
-            28, 44, 49, 16, 2, 29, 30, 7, 48, 46, 26, 31, 11, 21, 6, 19, 33, 42, 36, 0, 41, 23, 43,
-            5, 14,
-        ];
-
-        let mut t = IntervalTree::default();
-
-        // Insert all the values.
-        for &v in &values {
-            t.insert(v);
-        }
-
-        validate_tree_structure(&t);
-
-        // Ensure contains() returns true for all of them and remove all
-        // values that were inserted.
-        for &v in &values {
-            // Remove the node (that should exist).
-            assert!(t.contains(v));
-            assert_eq!(t.remove(v), Some(v));
-
-            // Attempting to remove the value a second time is a no-op.
-            assert!(!t.contains(v));
-            assert_eq!(t.remove(v), None);
-
-            // At all times, the tree must be structurally sound.
-            validate_tree_structure(&t);
-        }
     }
 
     const N_VALUES: usize = 200;
 
     #[derive(Debug)]
     enum Op {
-        Insert(usize),
-        Contains(usize),
-        Remove(usize),
+        Insert(Range<usize>),
+        Contains(Range<usize>),
+        Remove(Range<usize>),
     }
 
     fn arbitrary_op() -> impl Strategy<Value = Op> {
         // A small value domain encourages multiple operations to act on the
         // same value.
         prop_oneof![
-            (0..15_usize).prop_map(Op::Insert),
-            (0..15_usize).prop_map(Op::Contains),
-            (0..15_usize).prop_map(Op::Remove),
+            arbitrary_range().prop_map(Op::Insert),
+            arbitrary_range().prop_map(Op::Contains),
+            arbitrary_range().prop_map(Op::Remove),
         ]
     }
 
@@ -142,29 +99,29 @@ mod tests {
         /// each.
         #[test]
         fn prop_insert_contains(
-            a in prop::collection::hash_set(0..N_VALUES, 0..N_VALUES),
-            b in prop::collection::hash_set(0..N_VALUES, 0..N_VALUES),
+            a in prop::collection::hash_set(arbitrary_range(), 0..N_VALUES),
+            b in prop::collection::hash_set(arbitrary_range(), 0..N_VALUES),
         ) {
             let mut t = IntervalTree::default();
 
             // Assert contains does not report the values in "a" as existing.
-            for &v in &a {
+            for v in &a {
                 assert!(!t.contains(v));
             }
 
             // Insert all the values in "a"
-            for &v in &a {
-                t.insert(v);
+            for v in &a {
+                t.insert(v.clone(), 42);
             }
 
             // Ensure contains() returns true for all of them
-            for &v in &a {
+            for v in &a {
                 assert!(t.contains(v));
             }
 
             // Assert the values in the control set (the random values in "b"
             // that do not appear in "a") return false for contains()
-            for &v in b.difference(&a) {
+            for v in b.difference(&a) {
                 assert!(!t.contains(v));
             }
 
@@ -175,23 +132,23 @@ mod tests {
         /// are removed and the extracted values are returned.
         #[test]
         fn prop_insert_contains_remove(
-            values in prop::collection::hash_set(0..N_VALUES, 0..N_VALUES),
+            values in prop::collection::hash_set(arbitrary_range(), 0..N_VALUES),
         ) {
             let mut t = IntervalTree::default();
 
             // Insert all the values.
-            for &v in &values {
-                t.insert(v);
+            for v in &values {
+                t.insert(v.clone(), 42);
             }
 
             validate_tree_structure(&t);
 
             // Ensure contains() returns true for all of them and remove all
             // values that were inserted.
-            for &v in &values {
+            for v in &values {
                 // Remove the node (that should exist).
                 assert!(t.contains(v));
-                assert_eq!(t.remove(v), Some(v));
+                assert_eq!(t.remove(v), Some(42));
 
                 // Attempting to remove the value a second time is a no-op.
                 assert!(!t.contains(v));
@@ -201,7 +158,7 @@ mod tests {
                 validate_tree_structure(&t);
             }
 
-            assert_eq!(t.remove(N_VALUES+1), None);
+            assert_eq!(t.remove(&(N_VALUES..N_VALUES+1)), None);
         }
 
         #[test]
@@ -214,21 +171,21 @@ mod tests {
             for op in ops {
                 match op {
                     Op::Insert(v) => {
-                        let did_insert_tree = t.insert(v);
+                        let did_insert_tree = t.insert(v.clone(), 42);
                         let did_insert_model = model.insert(v);
                         assert_eq!(did_insert_tree, did_insert_model);
                     },
                     Op::Contains(v) => {
                         assert_eq!(
-                            t.contains(v),
+                            t.contains(&v),
                             model.contains(&v),
                             "tree contains() = {}, model.contains() = {}",
-                            t.contains(v),
+                            t.contains(&v),
                             model.contains(&v)
                         );
                     },
                     Op::Remove(v) => {
-                        let t_got = t.remove(v);
+                        let t_got = t.remove(&v);
                         let model_got = model.remove(&v);
                         assert_eq!(
                             t_got.is_some(),
@@ -245,14 +202,18 @@ mod tests {
             }
 
             for v in model {
-                assert!(t.contains(v));
+                assert!(t.contains(&v));
             }
         }
     }
 
     /// Assert the BST and AVL properties of tree nodes, ensuring the tree
     /// is well-formed.
-    fn validate_tree_structure(t: &IntervalTree) {
+    fn validate_tree_structure<T, R>(t: &IntervalTree<T, R>)
+    where
+        R: Ord + PartialEq + Debug,
+        T: Debug,
+    {
         let root = match t.0.as_deref() {
             Some(v) => v,
             None => return,
@@ -266,11 +227,17 @@ mod tests {
 
             // Invariant 1: the left child always contains a value strictly
             // less than this node.
-            assert!(n.left().map(|v| v.value() < n.value()).unwrap_or(true));
+            assert!(n
+                .left()
+                .map(|v| v.interval() < n.interval())
+                .unwrap_or(true));
 
             // Invariant 2: the right child always contains a value striggctly
             // greater than this node.
-            assert!(n.right().map(|v| v.value() > n.value()).unwrap_or(true));
+            assert!(n
+                .right()
+                .map(|v| v.interval() > n.interval())
+                .unwrap_or(true));
 
             // Invariant 3: the height of this node is always +1 of the
             // maximum child height.
@@ -284,8 +251,8 @@ mod tests {
             assert_eq!(
                 n.height(),
                 want_height,
-                "expect node with value {} to have height {}, has {}",
-                n.value(),
+                "expect node with interval {:?} to have height {}, has {}",
+                n.interval(),
                 want_height,
                 n.height(),
             );

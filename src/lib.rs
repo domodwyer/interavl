@@ -29,4 +29,8 @@
 
 mod avl;
 mod dot;
+mod interval;
 mod node;
+
+#[cfg(test)]
+mod test_utils;

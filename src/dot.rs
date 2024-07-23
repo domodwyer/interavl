@@ -1,8 +1,12 @@
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 
 use crate::node::Node;
 
-pub(crate) fn print_dot(n: &Node) -> String {
+pub(crate) fn print_dot<T, R>(n: &Node<T, R>) -> String
+where
+    T: Display,
+    R: Ord,
+{
     let mut buf = String::new();
 
     writeln!(buf, "digraph {{");
@@ -13,9 +17,11 @@ pub(crate) fn print_dot(n: &Node) -> String {
     buf
 }
 
-fn recurse<W>(n: &Node, buf: &mut W)
+fn recurse<T, R, W>(n: &Node<T, R>, buf: &mut W)
 where
     W: std::fmt::Write,
+    T: Display,
+    R: Ord,
 {
     writeln!(
         buf,

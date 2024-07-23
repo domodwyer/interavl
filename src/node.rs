@@ -1,4 +1,6 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Debug, ops::Range};
+
+use crate::interval::Interval;
 
 #[derive(Debug)]
 pub(super) enum RemoveResult<T> {
@@ -10,11 +12,12 @@ pub(super) enum RemoveResult<T> {
     ParentUnlink,
 }
 
+// TODO(dom:test): insert refs
+
 #[derive(Debug)]
-pub(crate) struct Node {
-    value: usize,
-    left: Option<Box<Node>>,
-    right: Option<Box<Node>>,
+pub(crate) struct Node<T, R> {
+    left: Option<Box<Node<T, R>>>,
+    right: Option<Box<Node<T, R>>>,
 
     /// The node's height.
     ///
@@ -23,11 +26,15 @@ pub(crate) struct Node {
     /// A u8 holds a maximum value of 255, meaning it can represent the height
     /// of a balanced tree of up to 5.78*10⁷⁶ entries.
     height: u8,
+
+    interval: Interval<R>,
+    value: T,
 }
 
-impl Node {
-    pub(crate) fn new(value: usize) -> Self {
+impl<T, R> Node<T, R> {
+    pub(crate) fn new(interval: Interval<R>, value: T) -> Self {
         Self {
+            interval,
             value,
             left: None,
             right: None,
@@ -35,18 +42,21 @@ impl Node {
         }
     }
 
-    pub(crate) fn insert(mut self: &mut Box<Self>, value: usize) -> bool {
-        let child = match value.cmp(&self.value) {
+    pub(crate) fn insert(mut self: &mut Box<Self>, interval: Interval<R>, value: T) -> bool
+    where
+        R: Ord,
+    {
+        let child = match interval.cmp(&self.interval) {
             Ordering::Less => &mut self.left,
             Ordering::Equal => return false,
             Ordering::Greater => &mut self.right,
         };
 
         let inserted = match child {
-            Some(v) => v.insert(value),
+            Some(v) => v.insert(interval, value),
             None => {
                 // Insert the value as a new immediate descendent of self.
-                *child = Some(Box::new(Self::new(value)));
+                *child = Some(Box::new(Self::new(interval, value)));
 
                 // Inserting this new child node cannot skew the tree in the
                 // direction of the new addition such that it requires the tree
@@ -61,6 +71,8 @@ impl Node {
         };
 
         if !inserted {
+            // The tree has not been modified, so it does not require
+            // rebalancing.
             return false;
         }
 
@@ -99,7 +111,10 @@ impl Node {
         true
     }
 
-    pub(super) fn remove(self: &mut Box<Self>, value: usize) -> Option<RemoveResult<usize>> {
+    pub(super) fn remove(self: &mut Box<Self>, range: &Range<R>) -> Option<RemoveResult<T>>
+    where
+        R: Ord + Debug,
+    {
         // Recurse down the subtree rooted at `self`.
         //
         // If the value is not found, or successfully removed, the result is
@@ -107,12 +122,12 @@ impl Node {
         // children, it returns [`RemoveResult::ParentUnlink`] and the node is
         // unlinked here in the parent before returning the result to the
         // caller.
-        match value.cmp(&self.value()) {
-            Ordering::Less => return remove_recurse(&mut self.left, value),
-            Ordering::Greater => return remove_recurse(&mut self.right, value),
+        match self.interval.partial_cmp(range).unwrap() {
+            Ordering::Greater => return remove_recurse(&mut self.left, range),
+            Ordering::Less => return remove_recurse(&mut self.right, range),
             Ordering::Equal => {
                 // This node holds the value to be removed from the tree.
-                debug_assert_eq!(self.value, value);
+                debug_assert_eq!(self.interval, *range);
             }
         };
 
@@ -199,24 +214,31 @@ impl Node {
         debug_assert!(old.left.is_none());
 
         // Invariant: the old node being unlinked does contain the target value.
-        debug_assert_eq!(old.value, value);
-        debug_assert_ne!(self.value, value); // The replacement node does not.
+        debug_assert_eq!(old.interval, *range);
+        debug_assert_ne!(self.interval, *range); // The replacement node does not.
 
         Some(RemoveResult::Removed(old.value))
     }
 
-    pub(crate) fn contains(&self, value: usize) -> bool {
-        let node = match value.cmp(&self.value) {
-            Ordering::Less => self.left.as_ref(),
+    pub(crate) fn contains(&self, range: &Range<R>) -> bool
+    where
+        R: Ord + Eq,
+    {
+        let node = match self.interval.partial_cmp(range).unwrap() {
+            Ordering::Greater => self.left.as_ref(),
             Ordering::Equal => return true,
-            Ordering::Greater => self.right.as_ref(),
+            Ordering::Less => self.right.as_ref(),
         };
 
-        node.map(|n| n.contains(value)).unwrap_or_default()
+        node.map(|n| n.contains(range)).unwrap_or_default()
     }
 
-    pub(crate) fn value(&self) -> usize {
-        self.value
+    pub(crate) fn value(&self) -> &T {
+        &self.value
+    }
+
+    pub(crate) fn interval(&self) -> &Interval<R> {
+        &self.interval
     }
 
     pub(crate) fn height(&self) -> u8 {
@@ -240,11 +262,11 @@ impl Node {
     }
 }
 
-fn height(n: Option<&Node>) -> u8 {
+fn height<T, R>(n: Option<&Node<T, R>>) -> u8 {
     n.map(|v| v.height()).unwrap_or_default()
 }
 
-fn update_height(n: &mut Node) {
+fn update_height<T, R>(n: &mut Node<T, R>) {
     n.height = n
         .left()
         .map(|v| v.height() + 1)
@@ -256,7 +278,7 @@ fn update_height(n: &mut Node) {
 ///
 /// Returns the subtree height skew / magnitude, which is a positive number when
 /// left heavy, and a negative number when right heavy.
-fn balance(n: &Node) -> i8 {
+fn balance<T, R>(n: &Node<T, R>) -> i8 {
     // Correctness: the height is a u8, the maximal value of which fits in an
     // i16 without truncation or sign inversion.
     (height(n.left()) as i16 - height(n.right()) as i16) as i8
@@ -278,7 +300,7 @@ fn balance(n: &Node) -> i8 {
 /// # Panics
 ///
 /// Panics if `x` has no right pointer (cannot be rotated).
-fn rotate_left(x: &mut Box<Node>) {
+fn rotate_left<T, R>(x: &mut Box<Node<T, R>>) {
     let mut p = x.right.take().unwrap();
     std::mem::swap(x, &mut p);
 
@@ -304,7 +326,7 @@ fn rotate_left(x: &mut Box<Node>) {
 /// # Panics
 ///
 /// Panics if `y` has no left pointer (cannot be rotated).
-fn rotate_right(mut y: &mut Box<Node>) {
+fn rotate_right<T, R>(mut y: &mut Box<Node<T, R>>) {
     let mut p = y.left.take().unwrap();
     std::mem::swap(y, &mut p);
 
@@ -318,7 +340,7 @@ fn rotate_right(mut y: &mut Box<Node>) {
 /// Extracts the node holding the minimum subtree value in a descendent of
 /// `root`, if any, linking the right subtree of the extracted node to in its
 /// place.
-fn extract_subtree_min(root: &mut Box<Node>) -> Option<Box<Node>> {
+fn extract_subtree_min<T, R>(root: &mut Box<Node<T, R>>) -> Option<Box<Node<T, R>>> {
     // Descend left to the leaf.
     let v = match extract_subtree_min(root.left_mut()?) {
         Some(mut v) => Some(v),
@@ -356,28 +378,34 @@ fn extract_subtree_min(root: &mut Box<Node>) -> Option<Box<Node>> {
 /// Clears the `node` pointer if the [`Node::remove()`] call returns
 /// [`RemoveResult::ParentUnlink`], returning the extracted value within a
 /// [`RemoveResult::Removed`] variant.
-pub(super) fn remove_recurse(
-    node: &mut Option<Box<Node>>,
-    value: usize,
-) -> Option<RemoveResult<usize>> {
+pub(super) fn remove_recurse<T, R>(
+    node: &mut Option<Box<Node<T, R>>>,
+    interval: &Range<R>,
+) -> Option<RemoveResult<T>>
+where
+    R: Ord + Debug,
+{
     // Remove the value (if any) and rebalance the tree.
     let remove_ret = node.as_mut().and_then(|v| {
-        let ret = v.remove(value)?;
+        let ret = v.remove(interval)?;
         rebalance_after_remove(v);
         Some(ret)
     })?;
 
     let v = match remove_ret {
         RemoveResult::Removed(v) => v,
-        RemoveResult::ParentUnlink => node.take().unwrap().value,
-    };
+        RemoveResult::ParentUnlink => {
+            let node = node.take().unwrap();
+            debug_assert_eq!(node.interval, *interval);
 
-    debug_assert_eq!(v, value);
+            node.value
+        }
+    };
 
     Some(RemoveResult::Removed(v))
 }
 
-fn rebalance_after_remove(v: &mut Box<Node>) {
+fn rebalance_after_remove<T, R>(v: &mut Box<Node<T, R>>) {
     // Recompute the height of the relocated node.
     update_height(v);
 
@@ -414,15 +442,23 @@ mod tests {
     use super::*;
     use crate::dot::print_dot;
 
-    fn add_left(n: &mut Node, v: usize) -> &mut Node {
+    fn add_left<T, R>(
+        n: &mut Node<T, R>,
+        interval: impl Into<Interval<R>>,
+        v: T,
+    ) -> &mut Node<T, R> {
         assert!(n.left.is_none());
-        n.left = Some(Box::new(Node::new(v)));
+        n.left = Some(Box::new(Node::new(interval.into(), v)));
         n.left.as_mut().unwrap()
     }
 
-    fn add_right(n: &mut Node, v: usize) -> &mut Node {
+    fn add_right<T, R>(
+        n: &mut Node<T, R>,
+        interval: impl Into<Interval<R>>,
+        v: T,
+    ) -> &mut Node<T, R> {
         assert!(n.right.is_none());
-        n.right = Some(Box::new(Node::new(v)));
+        n.right = Some(Box::new(Node::new(interval.into(), v)));
         n.right.as_mut().unwrap()
     }
 
@@ -438,18 +474,18 @@ mod tests {
         //        5   7
         //
 
-        let mut t = Node::new(2);
-        add_left(&mut t, 1);
-        let v = add_right(&mut t, 4);
-        add_left(v, 3);
-        let v = add_right(v, 6);
-        add_left(v, 5);
-        add_right(v, 7);
+        let mut t = Node::new(Interval::from(2..2), 2);
+        add_left(&mut t, 1..1, 1);
+        let v = add_right(&mut t, 4..4, 4);
+        add_left(v, 3..3, 3);
+        let v = add_right(v, 6..6, 6);
+        add_left(v, 5..5, 5);
+        add_right(v, 7..7, 7);
 
         let mut t = Box::new(t);
         rotate_left(&mut t);
 
-        assert_eq!(t.value, 4);
+        assert_eq!(t.interval, 4..4);
 
         {
             let left_root = t.left().unwrap();
@@ -485,18 +521,18 @@ mod tests {
         //     / \                          1   3 5   7
         //    1   3
         //
-        let mut t = Node::new(6);
-        add_right(&mut t, 7);
-        let v = add_left(&mut t, 4);
-        add_right(v, 5);
-        let v = add_left(v, 2);
-        add_right(v, 3);
-        add_left(v, 1);
+        let mut t = Node::new(Interval::from(6..6), 6);
+        add_right(&mut t, 7..7, 7);
+        let v = add_left(&mut t, 4..4, 4);
+        add_right(v, 5..5, 5);
+        let v = add_left(v, 2..2, 2);
+        add_right(v, 3..3, 3);
+        add_left(v, 1..1, 1);
 
         let mut t = Box::new(t);
         rotate_right(&mut t);
 
-        assert_eq!(t.value, 4);
+        assert_eq!(t.interval, 4..4);
 
         {
             let left_root = t.left().unwrap();
@@ -532,16 +568,16 @@ mod tests {
         //     / \
         //    1   3
         //
-        let mut t = Box::new(Node::new(6));
-        add_right(&mut t, 7);
-        let v = add_left(&mut t, 4);
-        add_right(v, 5);
-        let v = add_left(v, 2);
-        add_right(v, 3);
-        add_left(v, 1);
+        let mut t = Box::new(Node::new(Interval::from(6..6), 6));
+        add_right(&mut t, 7..7, 7);
+        let v = add_left(&mut t, 4..4, 7);
+        add_right(v, 5..5, 5);
+        let v = add_left(v, 2..2, 2);
+        add_right(v, 3..3, 3);
+        add_left(v, 1..1, 1);
 
         for want in [1, 2, 3] {
-            let n: Box<Node> = extract_subtree_min(&mut t).unwrap();
+            let n: Box<Node<_, _>> = extract_subtree_min(&mut t).unwrap();
             assert_eq!(n.value, want);
             assert!(n.right.is_none());
         }
@@ -550,11 +586,11 @@ mod tests {
         assert!(extract_subtree_min(&mut t).is_none());
 
         assert!(t.left.is_none());
-        assert_eq!(t.value, 4);
+        assert_eq!(t.interval, 4..4);
 
         let right = t.right.as_ref().unwrap();
-        assert_eq!(right.value, 6);
-        assert_eq!(right.left.as_ref().unwrap().value, 5);
-        assert_eq!(right.right.as_ref().unwrap().value, 7);
+        assert_eq!(right.interval, 6..6);
+        assert_eq!(right.left.as_ref().unwrap().interval, 5..5);
+        assert_eq!(right.right.as_ref().unwrap().interval, 7..7);
     }
 }
