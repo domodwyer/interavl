@@ -35,17 +35,15 @@ impl Node {
         }
     }
 
-    pub(crate) fn insert(self: &mut Box<Self>, value: usize) {
+    pub(crate) fn insert(self: &mut Box<Self>, value: usize) -> bool {
         let child = match value.cmp(&self.value) {
             Ordering::Less => &mut self.left,
-            Ordering::Equal => return,
+            Ordering::Equal => return false,
             Ordering::Greater => &mut self.right,
         };
 
-        match child {
-            Some(v) => {
-                v.insert(value);
-            }
+        let inserted = match child {
+            Some(v) => v.insert(value),
             None => {
                 // Insert the value as a new immediate descendent of self.
                 *child = Some(Box::new(Self::new(value)));
@@ -58,8 +56,12 @@ impl Node {
                 //
                 // Update this node and skip the rebalancing checks.
                 update_height(self);
-                return;
+                return true;
             }
+        };
+
+        if !inserted {
+            return false;
         }
 
         // Update this node's height.
@@ -97,6 +99,9 @@ impl Node {
         // Invariant: the absolute difference between tree heights ("balance
         // factor") cannot exceed 1.
         debug_assert!(balance(self).abs() <= 1);
+
+        debug_assert!(inserted);
+        true
     }
 
     pub(super) fn remove(self: &mut Box<Self>, value: usize) -> Option<RemoveResult<usize>> {

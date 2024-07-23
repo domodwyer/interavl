@@ -8,10 +8,13 @@ pub(crate) struct IntervalTree(Option<Box<Node>>);
 // TODO(dom): iter, range iter
 
 impl IntervalTree {
-    pub(crate) fn insert(&mut self, value: usize) {
+    pub(crate) fn insert(&mut self, value: usize) -> bool {
         match self.0 {
             Some(ref mut v) => v.insert(value),
-            None => self.0 = Some(Box::new(Node::new(value))),
+            None => {
+                self.0 = Some(Box::new(Node::new(value)));
+                true
+            }
         }
     }
 
@@ -211,9 +214,9 @@ mod tests {
             for op in ops {
                 match op {
                     Op::Insert(v) => {
-                        // TODO(dom): return bool for insert
-                        t.insert(v);
-                        model.insert(v);
+                        let did_insert_tree = t.insert(v);
+                        let did_insert_model = model.insert(v);
+                        assert_eq!(did_insert_tree, did_insert_model);
                     },
                     Op::Contains(v) => {
                         assert_eq!(
