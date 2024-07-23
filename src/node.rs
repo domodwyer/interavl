@@ -70,14 +70,9 @@ impl Node {
         // Determine the balance factor of the subtree rooted at self and
         // correct it if the absolute difference in height between branches is
         // > 1.
-        //
-        // If the balance factor is now 2/-2, then the above insertion has added
-        // to an already 1/-1 skewed subtree - therefore the subtree the value
-        // was applied to can be used to infer which child subtree is now
-        // unbalanced as a result.
         match (balance(self), self.left(), self.right()) {
             // Left-heavy
-            (2, Some(l), _) if value < l.value => {
+            (2, Some(l), _) if balance(l) >= 0 => {
                 rotate_right(self);
             }
             (2, Some(l), _) => {
@@ -85,7 +80,7 @@ impl Node {
                 rotate_right(self);
             }
             // Right-heavy
-            (-2, _, Some(r)) if value > r.value => {
+            (-2, _, Some(r)) if balance(r) < 0 => {
                 rotate_left(self);
             }
             (-2, _, Some(r)) => {
