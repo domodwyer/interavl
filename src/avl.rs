@@ -50,7 +50,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     use proptest::prelude::*;
 
@@ -74,6 +74,17 @@ mod tests {
         assert!(!t.contains(&(42..44)));
         assert!(!t.contains(&(41..45)));
         assert!(!t.contains(&(43..45)));
+
+        validate_tree_structure(&t);
+    }
+
+    /// Ensure inserting references as the tree value is supported.
+    #[test]
+    fn test_insert_refs() {
+        let mut t = IntervalTree::default();
+
+        t.insert(42..45, "bananas");
+        assert!(t.contains(&(42..45)));
 
         validate_tree_structure(&t);
     }
@@ -126,6 +137,31 @@ mod tests {
             // that do not appear in "a") return false for contains()
             for v in b.difference(&a) {
                 assert!(!t.contains(v));
+            }
+
+            validate_tree_structure(&t);
+        }
+
+        /// Insert (range, value) tuples into the tree and assert the mapping
+        /// behaves the same as a hashmap (a control model).
+        #[test]
+        fn prop_range_to_value_mapping(
+            values in prop::collection::hash_map(arbitrary_range(), any::<usize>(), 0..N_VALUES),
+        ) {
+            let mut t = IntervalTree::default();
+            let mut control = HashMap::with_capacity(values.len());
+
+            // Insert all the values, ensuring the tree and the control map
+            // return the same "this was new" signals.
+            for (range, v) in values {
+                assert_eq!(t.insert(range.clone(), v), control.insert(range, v).is_none());
+            }
+
+            validate_tree_structure(&t);
+
+            // Then validate that all the stored values match when removing.
+            for (range, v) in control {
+                assert_eq!(t.remove(&range).unwrap(), v);
             }
 
             validate_tree_structure(&t);
@@ -210,8 +246,8 @@ mod tests {
         }
     }
 
-    /// Assert the BST and AVL properties of tree nodes, ensuring the tree
-    /// is well-formed.
+    /// Assert the BST, AVL and interval tree properties of tree nodes, ensuring
+    /// the tree is well-formed.
     fn validate_tree_structure<T, R>(t: &IntervalTree<T, R>)
     where
         R: Ord + PartialEq + Debug + Clone,

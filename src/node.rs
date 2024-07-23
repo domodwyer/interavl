@@ -12,8 +12,6 @@ pub(super) enum RemoveResult<T> {
     ParentUnlink,
 }
 
-// TODO(dom:test): insert refs
-
 #[derive(Debug)]
 pub(crate) struct Node<T, R> {
     /// Child nodes pointers.
