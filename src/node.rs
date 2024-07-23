@@ -35,7 +35,7 @@ impl Node {
         }
     }
 
-    pub(crate) fn insert(self: &mut Box<Self>, value: usize) -> bool {
+    pub(crate) fn insert(mut self: &mut Box<Self>, value: usize) -> bool {
         let child = match value.cmp(&self.value) {
             Ordering::Less => &mut self.left,
             Ordering::Equal => return false,
@@ -78,19 +78,19 @@ impl Node {
         match (balance(self), self.left(), self.right()) {
             // Left-heavy
             (2, Some(l), _) if value < l.value => {
-                call_box_self(self, rotate_right);
+                rotate_right(self);
             }
             (2, Some(l), _) => {
-                self.left = Some(rotate_left(self.left.take().unwrap()));
-                call_box_self(self, rotate_right);
+                rotate_left(self.left.as_mut().unwrap());
+                rotate_right(self);
             }
             // Right-heavy
             (-2, _, Some(r)) if value > r.value => {
-                call_box_self(self, rotate_left);
+                rotate_left(self);
             }
             (-2, _, Some(r)) => {
-                self.right = Some(rotate_right(self.right.take().unwrap()));
-                call_box_self(self, rotate_left);
+                rotate_right(self.right.as_mut().unwrap());
+                rotate_left(self);
             }
             (-1..=1, _, _) => { /* The tree is well balanced */ }
             _ => unreachable!(),
@@ -283,16 +283,15 @@ fn balance(n: &Node) -> i8 {
 /// # Panics
 ///
 /// Panics if `x` has no right pointer (cannot be rotated).
-fn rotate_left(mut x: Box<Node>) -> Box<Node> {
+fn rotate_left(x: &mut Box<Node>) {
     let mut p = x.right.take().unwrap();
+    std::mem::swap(x, &mut p);
 
-    x.right = p.left;
-    update_height(&mut x);
-
-    p.left = Some(x);
+    p.right = x.left.take();
     update_height(&mut p);
 
-    p
+    x.left = Some(p);
+    update_height(x);
 }
 
 /// Right rotate the given subtree rooted at `y` around the pivot point `P`.
@@ -310,16 +309,15 @@ fn rotate_left(mut x: Box<Node>) -> Box<Node> {
 /// # Panics
 ///
 /// Panics if `y` has no left pointer (cannot be rotated).
-fn rotate_right(mut y: Box<Node>) -> Box<Node> {
+fn rotate_right(mut y: &mut Box<Node>) {
     let mut p = y.left.take().unwrap();
+    std::mem::swap(y, &mut p);
 
-    y.left = p.right;
-    update_height(&mut y);
-
-    p.right = Some(y);
+    p.left = y.right.take();
     update_height(&mut p);
 
-    p
+    y.right = Some(p);
+    update_height(y);
 }
 
 /// Extracts the node holding the minimum subtree value in a descendent of
@@ -391,19 +389,18 @@ fn rebalance_after_remove(v: &mut Box<Node>) {
     // And rebalance the subtree.
     match (balance(v)) {
         (2..) if v.left().map(balance).unwrap_or_default() >= 0 => {
-            call_box_self(v, rotate_right);
+            rotate_right(v);
         }
         (2..) => {
-            v.left = v.left.take().map(rotate_left);
-
-            call_box_self(v, rotate_right);
+            v.left.as_mut().map(rotate_left);
+            rotate_right(v);
         }
         (..=-2) if v.right().map(balance).unwrap_or_default() <= 0 => {
-            call_box_self(v, rotate_left);
+            rotate_left(v);
         }
         (..=-2) => {
-            v.right = v.right.take().map(rotate_right);
-            call_box_self(v, rotate_left);
+            v.right.as_mut().map(rotate_right);
+            rotate_left(v);
         }
 
         #[allow(clippy::manual_range_patterns)]
@@ -415,15 +412,6 @@ fn rebalance_after_remove(v: &mut Box<Node>) {
     // Invariant: the absolute difference between tree heights ("balance
     // factor") cannot exceed 1 after removing a value.
     debug_assert!(balance(v).abs() <= 1);
-}
-
-/// Call `F` with the owned boxed [`Node`] value and store the result in `v`.
-fn call_box_self<F>(v: &mut Box<Node>, f: F)
-where
-    F: Fn(Box<Node>) -> Box<Node>,
-{
-    // Shove a dummy value into the &mut, which is immediately overwrote.
-    *v = f(std::mem::replace(v, Box::new(Node::new(42))))
 }
 
 #[cfg(test)]
@@ -463,7 +451,8 @@ mod tests {
         add_left(v, 5);
         add_right(v, 7);
 
-        let t = rotate_left(Box::new(t));
+        let mut t = Box::new(t);
+        rotate_left(&mut t);
 
         assert_eq!(t.value, 4);
 
@@ -509,7 +498,8 @@ mod tests {
         add_right(v, 3);
         add_left(v, 1);
 
-        let t = rotate_right(Box::new(t));
+        let mut t = Box::new(t);
+        rotate_right(&mut t);
 
         assert_eq!(t.value, 4);
 
