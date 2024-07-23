@@ -21,7 +21,7 @@ pub(crate) struct Node {
     /// A leaf has a height of 0.
     ///
     /// A u8 holds a maximum value of 255, meaning it can represent the height
-    /// of a balanced tree of up to 5.78×10⁷⁶ entries.
+    /// of a balanced tree of up to 5.78*10⁷⁶ entries.
     height: u8,
 }
 
