@@ -30,7 +30,6 @@
 #[cfg(test)]
 use criterion as _;
 
-mod dot;
 mod interval;
 mod node;
 mod tree;

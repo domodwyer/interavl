@@ -488,7 +488,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dot::print_dot;
 
     fn add_left<T, R>(n: &mut Node<T, R>, interval: impl Into<Interval<R>>, v: T) -> &mut Node<T, R>
     where

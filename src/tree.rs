@@ -62,7 +62,7 @@ mod tests {
     use proptest::prelude::*;
 
     use super::*;
-    use crate::{dot::print_dot, test_utils::arbitrary_range};
+    use crate::test_utils::arbitrary_range;
 
     #[test]
     fn test_insert_contains() {
