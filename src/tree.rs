@@ -101,6 +101,7 @@ mod tests {
     #[derive(Debug)]
     enum Op {
         Insert(Range<usize>, usize),
+        Get(Range<usize>),
         Contains(Range<usize>),
         Remove(Range<usize>),
     }
@@ -110,6 +111,7 @@ mod tests {
         // same value.
         prop_oneof![
             (arbitrary_range(), any::<usize>()).prop_map(|(r, v)| Op::Insert(r, v)),
+            arbitrary_range().prop_map(Op::Get),
             arbitrary_range().prop_map(Op::Contains),
             arbitrary_range().prop_map(Op::Remove),
         ]
@@ -224,6 +226,15 @@ mod tests {
                 match op {
                     Op::Insert(range, v) => {
                         assert_eq!(t.insert(range.clone(), v), model.insert(range, v));
+                    },
+                    Op::Get(range) => {
+                        assert_eq!(
+                            t.get(&range),
+                            model.get(&range),
+                            "tree contains() = {:?}, model.contains() = {:?}",
+                            t.get(&range),
+                            model.get(&range)
+                        );
                     },
                     Op::Contains(range) => {
                         assert_eq!(
