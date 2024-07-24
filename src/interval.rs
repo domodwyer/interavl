@@ -1,7 +1,4 @@
-use std::{
-    cmp::Ordering,
-    ops::{Range, RangeBounds},
-};
+use std::{cmp::Ordering, ops::Range};
 
 /// A totally-ordered interval, convertible from and infallibly comparable to a
 /// [`Range`].
@@ -12,9 +9,6 @@ use std::{
 pub(crate) struct Interval<T>(Range<T>);
 
 impl<T> Interval<T> {
-    pub(crate) fn start(&self) -> &T {
-        &self.0.start
-    }
     pub(crate) fn end(&self) -> &T {
         &self.0.end
     }

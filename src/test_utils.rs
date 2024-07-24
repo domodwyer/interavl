@@ -15,6 +15,7 @@ pub(crate) fn arbitrary_range() -> impl Strategy<Value = Range<usize>> {
     (0..RANGE_MAX, 0..RANGE_MAX).prop_map(|(start, end)| Range { start, end })
 }
 
+#[allow(unused)]
 pub(crate) fn print_dot<T, R>(n: &Node<T, R>) -> String
 where
     T: Display,
@@ -30,6 +31,7 @@ where
     buf
 }
 
+#[allow(unused)]
 fn recurse<T, R, W>(n: &Node<T, R>, buf: &mut W)
 where
     W: std::fmt::Write,

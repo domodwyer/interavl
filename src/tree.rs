@@ -1,8 +1,7 @@
-use std::{cmp::Ordering, fmt::Debug, ops::Range};
+use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
-    iter::Iter,
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -62,7 +61,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
 
     use proptest::prelude::*;
 
@@ -267,7 +266,7 @@ mod tests {
                 validate_tree_structure(&t);
             }
 
-            for (range, v) in model {
+            for (range, _v) in model {
                 assert!(t.contains(&range));
             }
         }

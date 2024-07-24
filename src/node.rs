@@ -49,7 +49,7 @@ impl<T, R> Node<T, R> {
         }
     }
 
-    pub(crate) fn insert(mut self: &mut Box<Self>, interval: Interval<R>, value: T) -> Option<T>
+    pub(crate) fn insert(self: &mut Box<Self>, interval: Interval<R>, value: T) -> Option<T>
     where
         R: Ord + Clone,
     {
@@ -97,7 +97,7 @@ impl<T, R> Node<T, R> {
             (2, Some(l), _) if balance(l) >= 0 => {
                 rotate_right(self);
             }
-            (2, Some(l), _) => {
+            (2, Some(_l), _) => {
                 rotate_left(self.left_mut().unwrap());
                 rotate_right(self);
             }
@@ -105,7 +105,7 @@ impl<T, R> Node<T, R> {
             (-2, _, Some(r)) if balance(r) < 0 => {
                 rotate_left(self);
             }
-            (-2, _, Some(r)) => {
+            (-2, _, Some(_r)) => {
                 rotate_right(self.right_mut().unwrap());
                 rotate_left(self);
             }
@@ -390,7 +390,7 @@ where
 {
     // Descend left to the leaf.
     let v = match extract_subtree_min(root.left_mut()?) {
-        Some(mut v) => Some(v),
+        Some(v) => Some(v),
         None => {
             // The left child is the end of the left edge.
             //
@@ -406,7 +406,7 @@ where
             //
             // Unlink the right node of the left root, which will become the new
             // left node of "root" (if any).
-            let mut left_right = root.left_mut().and_then(|v| v.right.take());
+            let left_right = root.left_mut().and_then(|v| v.right.take());
 
             std::mem::replace(&mut root.left, left_right)
         }
@@ -460,7 +460,7 @@ where
     update_height(v);
 
     // And rebalance the subtree.
-    match (balance(v)) {
+    match balance(v) {
         (2..) if v.left().map(balance).unwrap_or_default() >= 0 => {
             rotate_right(v);
         }
@@ -478,8 +478,6 @@ where
 
         #[allow(clippy::manual_range_patterns)]
         -1 | 0 | 1 => { /* balanced */ }
-
-        _ => unreachable!(),
     }
 
     update_subtree_max(v);
