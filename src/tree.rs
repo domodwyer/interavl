@@ -2,6 +2,7 @@ use std::{cmp::Ordering, fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
+    iter::Iter,
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -42,6 +43,10 @@ where
 
     pub fn contains(&self, range: &Range<R>) -> bool {
         self.get(range).is_some()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
+        self.0.iter().flat_map(|v| v.iter())
     }
 
     pub fn remove(&mut self, range: &Range<R>) -> Option<T>
@@ -264,6 +269,47 @@ mod tests {
 
             for (range, v) in model {
                 assert!(t.contains(&range));
+            }
+        }
+
+        /// Insert values into the tree and assert the returned tuples are
+        /// ordered by their interval start/end matching the Interval Ord
+        /// implementation, and all tuples are yielded.
+        #[test]
+        fn prop_iter(
+            values in prop::collection::hash_map(
+                arbitrary_range(), any::<usize>(),
+                0..N_VALUES
+            ),
+        ) {
+            let mut t = IntervalTree::default();
+
+            for (range, value) in &values {
+                t.insert(range.clone(), value);
+            }
+
+            // Collect all tuples from the iterator.
+            let tuples = t.iter().collect::<Vec<_>>();
+
+            // The yield ordering is stable.
+            {
+                let tuples2 = t.iter().collect::<Vec<_>>();
+                assert_eq!(tuples, tuples2);
+            }
+
+            // Assert the tuples are ordered consistently with how the Interval
+            // orders ranges (lowest to highest, by start bounds and tie-broken
+            // by end bounds).
+            for window in tuples.windows(2) {
+                let a = Interval::from(window[0].0.clone());
+                let b = Interval::from(window[1].0.clone());
+                assert!(a < b);
+            }
+
+            // And all input tuples appear in the iterator output.
+            assert_eq!(tuples.len(), values.len());
+            for (range, value) in tuples {
+                assert_eq!(values.get(&(range.clone())).unwrap(), *value);
             }
         }
     }

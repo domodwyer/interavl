@@ -31,6 +31,7 @@
 use criterion as _;
 
 mod interval;
+mod iter;
 mod node;
 mod tree;
 

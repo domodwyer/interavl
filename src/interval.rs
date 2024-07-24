@@ -12,8 +12,14 @@ use std::{
 pub(crate) struct Interval<T>(Range<T>);
 
 impl<T> Interval<T> {
+    pub(crate) fn start(&self) -> &T {
+        &self.0.start
+    }
     pub(crate) fn end(&self) -> &T {
         &self.0.end
+    }
+    pub(crate) fn as_range(&self) -> &Range<T> {
+        &self.0
     }
 }
 

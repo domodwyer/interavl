@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt::Debug, ops::Range};
 
-use crate::interval::Interval;
+use crate::{interval::Interval, iter::Iter};
 
 #[derive(Debug)]
 pub(super) enum RemoveResult<T> {
@@ -98,7 +98,7 @@ impl<T, R> Node<T, R> {
                 rotate_right(self);
             }
             (2, Some(l), _) => {
-                rotate_left(self.left.as_mut().unwrap());
+                rotate_left(self.left_mut().unwrap());
                 rotate_right(self);
             }
             // Right-heavy
@@ -106,7 +106,7 @@ impl<T, R> Node<T, R> {
                 rotate_left(self);
             }
             (-2, _, Some(r)) => {
-                rotate_right(self.right.as_mut().unwrap());
+                rotate_right(self.right_mut().unwrap());
                 rotate_left(self);
             }
             (-1..=1, _, _) => { /* The tree is well balanced */ }
@@ -237,12 +237,16 @@ impl<T, R> Node<T, R> {
         R: Ord + Eq,
     {
         let node = match self.interval.partial_cmp(range).unwrap() {
-            Ordering::Greater => self.left.as_ref(),
+            Ordering::Greater => self.left(),
             Ordering::Equal => return Some(&self.value),
-            Ordering::Less => self.right.as_ref(),
-        };
+            Ordering::Less => self.right(),
+        }?;
 
-        node.and_then(|n| n.get(range))
+        node.get(range)
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
+        Iter::new(self).map(|n| (n.interval().as_range(), n.value()))
     }
 
     pub(crate) fn value(&self) -> &T {
@@ -461,14 +465,14 @@ where
             rotate_right(v);
         }
         (2..) => {
-            v.left.as_mut().map(rotate_left);
+            v.left_mut().map(rotate_left);
             rotate_right(v);
         }
         (..=-2) if v.right().map(balance).unwrap_or_default() <= 0 => {
             rotate_left(v);
         }
         (..=-2) => {
-            v.right.as_mut().map(rotate_right);
+            v.right_mut().map(rotate_right);
             rotate_left(v);
         }
 
@@ -495,7 +499,7 @@ mod tests {
     {
         assert!(n.left.is_none());
         n.left = Some(Box::new(Node::new(interval.into(), v)));
-        n.left.as_mut().unwrap()
+        n.left_mut().unwrap()
     }
 
     fn add_right<T, R>(
@@ -637,9 +641,9 @@ mod tests {
         assert!(t.left.is_none());
         assert_eq!(t.interval, 4..4);
 
-        let right = t.right.as_ref().unwrap();
+        let right = t.right().unwrap();
         assert_eq!(right.interval, 6..6);
-        assert_eq!(right.left.as_ref().unwrap().interval, 5..5);
-        assert_eq!(right.right.as_ref().unwrap().interval, 7..7);
+        assert_eq!(right.left().unwrap().interval, 5..5);
+        assert_eq!(right.right().unwrap().interval, 7..7);
     }
 }
