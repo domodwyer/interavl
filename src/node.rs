@@ -12,7 +12,7 @@ pub(super) enum RemoveResult<T> {
     ParentUnlink,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Node<T, R> {
     /// Child nodes pointers.
     left: Option<Box<Node<T, R>>>,

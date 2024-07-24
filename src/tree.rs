@@ -5,7 +5,7 @@ use crate::{
     node::{remove_recurse, Node, RemoveResult},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
 
 // TODO(dom): iter, range iter

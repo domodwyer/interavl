@@ -8,7 +8,7 @@ use std::{
 ///
 /// An [`Interval`] is ordered by the [`Range`] lower bound, and tie-braked with
 /// the upper bound.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct Interval<T>(Range<T>);
 
 impl<T> Interval<T> {
