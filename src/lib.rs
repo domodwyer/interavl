@@ -27,10 +27,10 @@
 //   License for the specific language governing permissions and limitations
 //   under the License.
 
-mod avl;
 mod dot;
 mod interval;
 mod node;
+mod tree;
 
 #[cfg(test)]
 mod test_utils;
