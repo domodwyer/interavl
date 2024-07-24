@@ -230,17 +230,17 @@ impl<T, R> Node<T, R> {
         Some(RemoveResult::Removed(old.value))
     }
 
-    pub(crate) fn contains(&self, range: &Range<R>) -> bool
+    pub(crate) fn get(&self, range: &Range<R>) -> Option<&T>
     where
         R: Ord + Eq,
     {
         let node = match self.interval.partial_cmp(range).unwrap() {
             Ordering::Greater => self.left.as_ref(),
-            Ordering::Equal => return true,
+            Ordering::Equal => return Some(&self.value),
             Ordering::Less => self.right.as_ref(),
         };
 
-        node.map(|n| n.contains(range)).unwrap_or_default()
+        node.and_then(|n| n.get(range))
     }
 
     pub(crate) fn value(&self) -> &T {

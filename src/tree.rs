@@ -36,11 +36,12 @@ where
         }
     }
 
+    pub fn get(&self, range: &Range<R>) -> Option<&T> {
+        self.0.as_ref().and_then(|v| v.get(range))
+    }
+
     pub fn contains(&self, range: &Range<R>) -> bool {
-        self.0
-            .as_ref()
-            .map(|v| v.contains(range))
-            .unwrap_or_default()
+        self.get(range).is_some()
     }
 
     pub fn remove(&mut self, range: &Range<R>) -> Option<T>
@@ -159,15 +160,21 @@ mod tests {
 
             // Insert all the values, ensuring the tree and the control map
             // return the same "this was new" signals.
-            for (range, v) in values {
+            for (range, v) in &values {
                 assert_eq!(t.insert(range.clone(), v), control.insert(range, v).is_none());
             }
 
             validate_tree_structure(&t);
 
+            // Validate that reading the value for a given key returns the
+            // expected result.
+            for range in values.keys() {
+                assert_eq!(t.get(range), control.get(range));
+            }
+
             // Then validate that all the stored values match when removing.
             for (range, v) in control {
-                assert_eq!(t.remove(&range).unwrap(), v);
+                assert_eq!(t.remove(range).unwrap(), v);
             }
 
             validate_tree_structure(&t);
