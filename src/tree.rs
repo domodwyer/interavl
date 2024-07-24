@@ -5,8 +5,14 @@ use crate::{
     node::{remove_recurse, Node, RemoveResult},
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
+
+impl<T, R> Default for IntervalTree<T, R> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 // TODO(dom): iter, range iter
 
