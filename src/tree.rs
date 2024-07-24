@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
-pub(crate) struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
+pub struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
 
 // TODO(dom): iter, range iter
 
@@ -16,7 +16,7 @@ impl<T, R> IntervalTree<T, R>
 where
     R: Ord,
 {
-    pub(crate) fn insert(&mut self, range: Range<R>, value: T) -> bool
+    pub fn insert(&mut self, range: Range<R>, value: T) -> bool
     where
         R: Clone,
     {
@@ -30,14 +30,14 @@ where
         }
     }
 
-    pub(crate) fn contains(&self, range: &Range<R>) -> bool {
+    pub fn contains(&self, range: &Range<R>) -> bool {
         self.0
             .as_ref()
             .map(|v| v.contains(range))
             .unwrap_or_default()
     }
 
-    pub(crate) fn remove(&mut self, range: &Range<R>) -> Option<T>
+    pub fn remove(&mut self, range: &Range<R>) -> Option<T>
     where
         R: Clone + Debug,
     {

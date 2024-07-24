@@ -32,5 +32,7 @@ mod interval;
 mod node;
 mod tree;
 
+pub use tree::*;
+
 #[cfg(test)]
 mod test_utils;
