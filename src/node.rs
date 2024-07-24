@@ -49,13 +49,15 @@ impl<T, R> Node<T, R> {
         }
     }
 
-    pub(crate) fn insert(mut self: &mut Box<Self>, interval: Interval<R>, value: T) -> bool
+    pub(crate) fn insert(mut self: &mut Box<Self>, interval: Interval<R>, value: T) -> Option<T>
     where
         R: Ord + Clone,
     {
         let child = match interval.cmp(&self.interval) {
             Ordering::Less => &mut self.left,
-            Ordering::Equal => return false,
+            Ordering::Equal => {
+                return Some(std::mem::replace(&mut self.value, value));
+            }
             Ordering::Greater => &mut self.right,
         };
 
@@ -74,14 +76,14 @@ impl<T, R> Node<T, R> {
                 // Update this node and skip the rebalancing checks.
                 update_height(self);
                 update_subtree_max(self);
-                return true;
+                return None;
             }
         };
 
-        if !inserted {
-            // The tree has not been modified, so it does not require
+        if inserted.is_some() {
+            // The tree structure has not been modified, so it does not require
             // rebalancing.
-            return false;
+            return inserted;
         }
 
         // Update this node's height.
@@ -117,8 +119,8 @@ impl<T, R> Node<T, R> {
         // factor") cannot exceed 1.
         debug_assert!(balance(self).abs() <= 1);
 
-        debug_assert!(inserted);
-        true
+        debug_assert!(inserted.is_none());
+        None
     }
 
     pub(super) fn remove(self: &mut Box<Self>, range: &Range<R>) -> Option<RemoveResult<T>>

@@ -22,7 +22,7 @@ impl<T, R> IntervalTree<T, R>
 where
     R: Ord,
 {
-    pub fn insert(&mut self, range: Range<R>, value: T) -> bool
+    pub fn insert(&mut self, range: Range<R>, value: T) -> Option<T>
     where
         R: Clone,
     {
@@ -31,7 +31,7 @@ where
             Some(ref mut v) => v.insert(interval, value),
             None => {
                 self.0 = Some(Box::new(Node::new(interval, value)));
-                true
+                None
             }
         }
     }
@@ -100,7 +100,7 @@ mod tests {
 
     #[derive(Debug)]
     enum Op {
-        Insert(Range<usize>),
+        Insert(Range<usize>, usize),
         Contains(Range<usize>),
         Remove(Range<usize>),
     }
@@ -109,7 +109,7 @@ mod tests {
         // A small value domain encourages multiple operations to act on the
         // same value.
         prop_oneof![
-            arbitrary_range().prop_map(Op::Insert),
+            (arbitrary_range(), any::<usize>()).prop_map(|(r, v)| Op::Insert(r, v)),
             arbitrary_range().prop_map(Op::Contains),
             arbitrary_range().prop_map(Op::Remove),
         ]
@@ -161,7 +161,7 @@ mod tests {
             // Insert all the values, ensuring the tree and the control map
             // return the same "this was new" signals.
             for (range, v) in &values {
-                assert_eq!(t.insert(range.clone(), v), control.insert(range, v).is_none());
+                assert_eq!(t.insert(range.clone(), v), control.insert(range, v));
             }
 
             validate_tree_structure(&t);
@@ -218,31 +218,29 @@ mod tests {
             ops in prop::collection::vec(arbitrary_op(), 1..50),
         ) {
             let mut t = IntervalTree::default();
-            let mut model = HashSet::new();
+            let mut model = HashMap::new();
 
             for op in ops {
                 match op {
-                    Op::Insert(v) => {
-                        let did_insert_tree = t.insert(v.clone(), 42);
-                        let did_insert_model = model.insert(v);
-                        assert_eq!(did_insert_tree, did_insert_model);
+                    Op::Insert(range, v) => {
+                        assert_eq!(t.insert(range.clone(), v), model.insert(range, v));
                     },
-                    Op::Contains(v) => {
+                    Op::Contains(range) => {
                         assert_eq!(
-                            t.contains(&v),
-                            model.contains(&v),
+                            t.contains(&range),
+                            model.contains_key(&range),
                             "tree contains() = {}, model.contains() = {}",
-                            t.contains(&v),
-                            model.contains(&v)
+                            t.contains(&range),
+                            model.contains_key(&range)
                         );
                     },
-                    Op::Remove(v) => {
-                        let t_got = t.remove(&v);
-                        let model_got = model.remove(&v);
+                    Op::Remove(range) => {
+                        let t_got = t.remove(&range);
+                        let model_got = model.remove(&range);
                         assert_eq!(
-                            t_got.is_some(),
+                            t_got,
                             model_got,
-                            "tree remove() = {:?}, model.remove() = {}",
+                            "tree remove() = {:?}, model.remove() = {:?}",
                             t_got,
                             model_got,
                         );
@@ -253,8 +251,8 @@ mod tests {
                 validate_tree_structure(&t);
             }
 
-            for v in model {
-                assert!(t.contains(&v));
+            for (range, v) in model {
+                assert!(t.contains(&range));
             }
         }
     }
