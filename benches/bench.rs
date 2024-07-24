@@ -1,10 +1,11 @@
 mod contains;
 mod insert;
+mod iter;
 
 use criterion::{criterion_group, criterion_main};
 
 criterion_main!(benches);
-criterion_group!(benches, insert::bench, contains::bench);
+criterion_group!(benches, insert::bench, contains::bench, iter::bench);
 
 /// Linear-feedback shift register based PRNG.
 ///

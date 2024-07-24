@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt::Debug, ops::Range};
 
-use crate::{interval::Interval, iter::Iter};
+use crate::interval::Interval;
 
 #[derive(Debug)]
 pub(super) enum RemoveResult<T> {
@@ -243,10 +243,6 @@ impl<T, R> Node<T, R> {
         }?;
 
         node.get(range)
-    }
-
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
-        Iter::new(self).map(|n| (n.interval().as_range(), n.value()))
     }
 
     pub(crate) fn value(&self) -> &T {

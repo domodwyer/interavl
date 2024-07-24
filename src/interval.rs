@@ -17,6 +17,15 @@ impl<T> Interval<T> {
     }
 }
 
+impl<T> Interval<T>
+where
+    T: Ord,
+{
+    pub(crate) fn overlaps(&self, other: &Range<T>) -> bool {
+        other.end > self.0.start && other.start < self.0.end
+    }
+}
+
 impl<T> PartialOrd for Interval<T>
 where
     T: Ord + Eq,
@@ -73,10 +82,32 @@ mod tests {
 
     use proptest::prelude::*;
 
+    #[test]
+    fn test_overlaps() {
+        let a = 42..100;
+
+        assert!(Interval::from(42..100).overlaps(&a));
+        assert!(Interval::from(42..101).overlaps(&a));
+        assert!(Interval::from(41..100).overlaps(&a));
+        assert!(Interval::from(41..101).overlaps(&a));
+        assert!(Interval::from(42..43).overlaps(&a));
+        assert!(Interval::from(99..100).overlaps(&a));
+        assert!(Interval::from(50..51).overlaps(&a));
+
+        // Non-overlapping
+        assert!(!Interval::from(41..42).overlaps(&a));
+        assert!(!Interval::from(100..101).overlaps(&a));
+    }
+
     proptest! {
         #[test]
         fn prop_range_eq(r in any::<Range<usize>>()) {
             let interval = Interval::from(r.clone());
+
+            // Reversing the conversion yields the input.
+            assert_eq!(r, *interval.as_range());
+            assert_eq!(r.start, interval.0.start);
+            assert_eq!(r.end, *interval.end());
 
             // Intervals are equal with ranges.
             assert_eq!(interval, r);

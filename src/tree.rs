@@ -2,6 +2,7 @@ use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
+    iter::Iter,
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -45,7 +46,21 @@ where
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
-        self.0.iter().flat_map(|v| v.iter())
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    pub fn overlaps<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|v| v.interval().overlaps(range))
+            .map(|v| (v.interval().as_range(), v.value()))
     }
 
     pub fn remove(&mut self, range: &Range<R>) -> Option<T>
@@ -61,7 +76,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     use proptest::prelude::*;
 
@@ -306,10 +321,43 @@ mod tests {
             }
 
             // And all input tuples appear in the iterator output.
-            assert_eq!(tuples.len(), values.len());
-            for (range, value) in tuples {
-                assert_eq!(values.get(&(range.clone())).unwrap(), *value);
+            let tuples = tuples
+                .into_iter()
+                .map(|(r, v)| (r.clone(), **v))
+                .collect::<HashMap<_, _>>();
+
+            assert_eq!(tuples, values);
+        }
+
+        /// Ensure that the "overlaps" iter yields only ranges that overlap with
+        /// the query range.
+        #[test]
+        fn prop_overlaps(
+            query in arbitrary_range(),
+            values in prop::collection::hash_set(
+                arbitrary_range(),
+                0..N_VALUES
+            ),
+        ) {
+            // Collect all the "values" that overlap with "query".
+            //
+            // This forms the expected set of results.
+            let control = values
+                .iter()
+                .filter(|v| Interval::from((*v).clone()).overlaps(&query))
+                .collect::<HashSet<_>>();
+
+            // Populate the tree.
+            let mut t = IntervalTree::default();
+            for range in &values {
+                t.insert(range.clone(), 42);
             }
+
+            // Extract all the overlapping ranges.
+            let got = t.overlaps(&query).map(|v| v.0).collect::<HashSet<_>>();
+
+            // And assert the sets match.
+            assert_eq!(got, control);
         }
     }
 
