@@ -27,6 +27,9 @@
 //   License for the specific language governing permissions and limitations
 //   under the License.
 
+#[cfg(test)]
+use criterion as _;
+
 mod dot;
 mod interval;
 mod node;
