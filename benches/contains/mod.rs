@@ -47,7 +47,7 @@ where
     let mut t = IntervalTree::default();
 
     for _i in 0..n_values {
-        let range = rand.next()..rand.next();
+        let range = rand.next_range();
         t.insert(range, 42_usize);
     }
 
@@ -71,7 +71,7 @@ where
             |mut rand| {
                 let mut any_hit = false;
                 for _ in 0..n_lookups {
-                    let range = rand.next()..rand.next();
+                    let range = rand.next_range();
                     any_hit |= t.contains(&range);
                 }
                 assert!(!any_hit)
@@ -98,7 +98,7 @@ where
             |mut rand| {
                 let mut all_hit = true;
                 for _ in 0..n_lookups {
-                    let range = rand.next()..rand.next();
+                    let range = rand.next_range();
                     all_hit &= t.contains(&range);
                 }
                 assert!(all_hit);

@@ -35,7 +35,7 @@ where
             || (IntervalTree::default(), Lfsr::default()),
             |(mut t, mut rand)| {
                 for _i in 0..n_values {
-                    let range = rand.next()..rand.next();
+                    let range = rand.next_range();
                     t.insert(range, 42_usize);
                 }
                 t

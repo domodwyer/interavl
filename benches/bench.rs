@@ -2,6 +2,8 @@ mod contains;
 mod insert;
 mod iter;
 
+use std::ops::Range;
+
 use criterion::{criterion_group, criterion_main};
 
 criterion_main!(benches);
@@ -29,5 +31,15 @@ impl Lfsr {
         }
         assert_ne!(self.0, 42, "LFSR rollover");
         self.0
+    }
+
+    /// Return a valid [`Range`] with random bounds.
+    pub fn next_range(&mut self) -> Range<u16> {
+        let a = self.next();
+        let b = self.next();
+        Range {
+            start: a.min(b),
+            end: a.max(b),
+        }
     }
 }
