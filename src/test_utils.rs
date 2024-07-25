@@ -19,12 +19,16 @@ pub(crate) fn arbitrary_range() -> impl Strategy<Value = Range<usize>> {
 pub(crate) fn print_dot<T, R>(n: &Node<T, R>) -> String
 where
     T: Display,
-    R: Ord,
+    R: Display + Ord,
 {
     let mut buf = String::new();
 
     writeln!(buf, "digraph {{");
-    writeln!(buf, "node [shape=record];");
+    writeln!(buf, r#"bgcolor = "transparent";"#);
+    writeln!(
+        buf,
+        r#"node [shape = record; style = filled; fontcolor = orange4; fillcolor = white;];"#
+    );
     recurse(n, &mut buf);
     writeln!(buf, "}}");
 
@@ -36,26 +40,40 @@ fn recurse<T, R, W>(n: &Node<T, R>, buf: &mut W)
 where
     W: std::fmt::Write,
     T: Display,
-    R: Ord,
+    R: Display + Ord,
 {
     writeln!(
         buf,
-        r#"{} [label="{} | {}"];"#,
+        r#""{}" [label="{} | {} | {{ max={} | h={} }}"];"#,
+        n.interval(),
+        n.interval(),
         n.value(),
-        n.value(),
-        n.height()
+        n.subtree_max(),
+        n.height(),
     )
     .unwrap();
 
     for v in [n.left(), n.right()] {
         match v {
             Some(v) => {
-                writeln!(buf, "{} -> {};", n.value(), v.value()).unwrap();
+                writeln!(
+                    buf,
+                    "\"{}\" -> \"{}\" [color = \"orange1\";];",
+                    n.interval(),
+                    v.interval()
+                )
+                .unwrap();
                 recurse(v, buf);
             }
             None => {
-                writeln!(buf, "null_{} [shape=point,style=invis];", n.value()).unwrap();
-                writeln!(buf, "{} -> null_{} [style=invis];", n.value(), n.value()).unwrap();
+                writeln!(buf, "\"null_{}\" [shape=point,style=invis];", n.interval()).unwrap();
+                writeln!(
+                    buf,
+                    "\"{}\" -> \"null_{}\" [style=invis];",
+                    n.interval(),
+                    n.interval()
+                )
+                .unwrap();
             }
         };
     }

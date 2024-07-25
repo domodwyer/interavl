@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ops::Range};
+use std::{cmp::Ordering, fmt::Display, ops::Range};
 
 /// A totally-ordered interval, convertible from and infallibly comparable to a
 /// [`Range`].
@@ -14,6 +14,15 @@ impl<T> Interval<T> {
     }
     pub(crate) fn as_range(&self) -> &Range<T> {
         &self.0
+    }
+}
+
+impl<T> Display for Interval<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.0.start, self.0.end)
     }
 }
 
