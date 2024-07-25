@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
-    iter::Iter,
+    iter::{Iter, OverlapsIter},
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -14,8 +14,6 @@ impl<T, R> Default for IntervalTree<T, R> {
         Self(Default::default())
     }
 }
-
-// TODO(dom): iter, range iter
 
 // TODO(dom): entry + entry_mut -> Vec
 
@@ -58,8 +56,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
-            .filter(|v| v.interval().overlaps(range))
+            .flat_map(|v| OverlapsIter::new(v, range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
 

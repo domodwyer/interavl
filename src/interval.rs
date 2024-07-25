@@ -9,6 +9,9 @@ use std::{cmp::Ordering, fmt::Display, ops::Range};
 pub(crate) struct Interval<T>(Range<T>);
 
 impl<T> Interval<T> {
+    pub(crate) fn start(&self) -> &T {
+        &self.0.start
+    }
     pub(crate) fn end(&self) -> &T {
         &self.0.end
     }
@@ -22,7 +25,7 @@ where
     T: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}..{}", self.0.start, self.0.end)
+        write!(f, "{}..{}", self.start(), self.end())
     }
 }
 
