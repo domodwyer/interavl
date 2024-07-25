@@ -334,9 +334,9 @@ mod tests {
         #[test]
         fn prop_overlaps(
             query in arbitrary_range(),
-            values in prop::collection::hash_set(
+            values in prop::collection::vec(
                 arbitrary_range(),
-                0..N_VALUES
+                0..10
             ),
         ) {
             // Collect all the "values" that overlap with "query".
