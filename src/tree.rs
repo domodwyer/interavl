@@ -429,11 +429,11 @@ mod tests {
             // This indirectly validates that the subtree max of "n" is
             // greater-than-or-equal-to that of the left and right child's
             // subtree max value.
-            let want_max = n
+            let child_max = n
                 .left()
                 .map(|v| v.subtree_max())
-                .max(n.right().map(|v| v.subtree_max()))
-                .unwrap_or_else(|| n.subtree_max());
+                .max(n.right().map(|v| v.subtree_max()));
+            let want_max = child_max.max(Some(n.interval().end())).unwrap();
             assert_eq!(want_max, n.subtree_max());
         }
     }

@@ -297,7 +297,8 @@ where
     let new_max = n
         .left()
         .map(|v| v.subtree_max())
-        .max(n.right().map(|v| v.subtree_max()));
+        .max(n.right().map(|v| v.subtree_max()))
+        .max(Some(n.interval().end()));
 
     if let Some(new_max) = new_max {
         n.subtree_max = new_max.clone();
