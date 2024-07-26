@@ -252,6 +252,26 @@ impl<T, R> Node<T, R> {
         node.get(range)
     }
 
+    pub(crate) fn get_mut(&mut self, range: &Range<R>) -> Option<&mut T>
+    where
+        R: Ord + Eq,
+    {
+        let node = match self.interval.partial_cmp(range).unwrap() {
+            Ordering::Greater => self.left_mut(),
+            Ordering::Equal => return Some(&mut self.value),
+            Ordering::Less => self.right_mut(),
+        }?;
+
+        // Prune this subtree from the search if the maximum upper bound in the
+        // subtree is less than the search upper bound. If true, this subtree
+        // cannot contain the search range.
+        if *node.subtree_max() < range.end {
+            return None;
+        }
+
+        node.get_mut(range)
+    }
+
     pub(crate) fn value(&self) -> &T {
         &self.value
     }

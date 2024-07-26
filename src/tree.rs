@@ -46,6 +46,12 @@ where
         self.0.as_ref().and_then(|v| v.get(range))
     }
 
+    /// Return a mutable reference to the value associated with the specified
+    /// `range`, if any.
+    pub fn get_mut(&mut self, range: &Range<R>) -> Option<&mut T> {
+        self.0.as_mut().and_then(|v| v.get_mut(range))
+    }
+
     /// Returns `true`` if the tree contains a value for the specified interval.
     pub fn contains_key(&self, range: &Range<R>) -> bool {
         self.get(range).is_some()
@@ -348,6 +354,7 @@ mod tests {
         Insert(Range<usize>, usize),
         Get(Range<usize>),
         ContainsKey(Range<usize>),
+        Update(Range<usize>, usize),
         Remove(Range<usize>),
     }
 
@@ -356,6 +363,7 @@ mod tests {
         // same value.
         prop_oneof![
             (arbitrary_range(), any::<usize>()).prop_map(|(r, v)| Op::Insert(r, v)),
+            (arbitrary_range(), any::<usize>()).prop_map(|(r, v)| Op::Update(r, v)),
             arbitrary_range().prop_map(Op::Get),
             arbitrary_range().prop_map(Op::ContainsKey),
             arbitrary_range().prop_map(Op::Remove),
@@ -471,6 +479,17 @@ mod tests {
                 match op {
                     Op::Insert(range, v) => {
                         assert_eq!(t.insert(range.clone(), v), model.insert(range, v));
+                    },
+                    Op::Update(range, value) => {
+                        // Both return the Some(v) or None
+                        assert_eq!(t.get_mut(&range), model.get_mut(&range));
+                        // Update if Some
+                        if let Some(v) = t.get_mut(&range) {
+                            *v = value;
+                            *model.get_mut(&range).unwrap() = value;
+                        }
+                        // Must match after
+                        assert_eq!(t.get(&range), model.get(&range));
                     },
                     Op::Get(range) => {
                         assert_eq!(t.get(&range), model.get(&range));
