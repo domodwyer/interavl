@@ -72,7 +72,7 @@ where
                 let mut any_hit = false;
                 for _ in 0..n_lookups {
                     let range = rand.next_range();
-                    any_hit |= t.contains(&range);
+                    any_hit |= t.contains_key(&range);
                 }
                 assert!(!any_hit)
             },
@@ -99,7 +99,7 @@ where
                 let mut all_hit = true;
                 for _ in 0..n_lookups {
                     let range = rand.next_range();
-                    all_hit &= t.contains(&range);
+                    all_hit &= t.contains_key(&range);
                 }
                 assert!(all_hit);
             },

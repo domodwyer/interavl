@@ -39,7 +39,7 @@ where
         self.0.as_ref().and_then(|v| v.get(range))
     }
 
-    pub fn contains(&self, range: &Range<R>) -> bool {
+    pub fn contains_key(&self, range: &Range<R>) -> bool {
         self.get(range).is_some()
     }
 
@@ -100,15 +100,15 @@ mod tests {
         t.insert(22..23, 2);
         t.insert(25..29, 3);
 
-        assert!(t.contains(&(42..45)));
-        assert!(t.contains(&(22..23)));
-        assert!(t.contains(&(25..29)));
+        assert!(t.contains_key(&(42..45)));
+        assert!(t.contains_key(&(22..23)));
+        assert!(t.contains_key(&(25..29)));
 
         // Does not contain slight bounding variations of the first insert.
-        assert!(!t.contains(&(42..46)));
-        assert!(!t.contains(&(42..44)));
-        assert!(!t.contains(&(41..45)));
-        assert!(!t.contains(&(43..45)));
+        assert!(!t.contains_key(&(42..46)));
+        assert!(!t.contains_key(&(42..44)));
+        assert!(!t.contains_key(&(41..45)));
+        assert!(!t.contains_key(&(43..45)));
 
         validate_tree_structure(&t);
     }
@@ -119,7 +119,7 @@ mod tests {
         let mut t = IntervalTree::default();
 
         t.insert(42..45, "bananas");
-        assert!(t.contains(&(42..45)));
+        assert!(t.contains_key(&(42..45)));
 
         validate_tree_structure(&t);
     }
@@ -130,7 +130,7 @@ mod tests {
     enum Op {
         Insert(Range<usize>, usize),
         Get(Range<usize>),
-        Contains(Range<usize>),
+        ContainsKey(Range<usize>),
         Remove(Range<usize>),
     }
 
@@ -140,7 +140,7 @@ mod tests {
         prop_oneof![
             (arbitrary_range(), any::<usize>()).prop_map(|(r, v)| Op::Insert(r, v)),
             arbitrary_range().prop_map(Op::Get),
-            arbitrary_range().prop_map(Op::Contains),
+            arbitrary_range().prop_map(Op::ContainsKey),
             arbitrary_range().prop_map(Op::Remove),
         ]
     }
@@ -157,7 +157,7 @@ mod tests {
 
             // Assert contains does not report the values in "a" as existing.
             for v in &a {
-                assert!(!t.contains(v));
+                assert!(!t.contains_key(v));
             }
 
             // Insert all the values in "a"
@@ -167,13 +167,13 @@ mod tests {
 
             // Ensure contains() returns true for all of them
             for v in &a {
-                assert!(t.contains(v));
+                assert!(t.contains_key(v));
             }
 
             // Assert the values in the control set (the random values in "b"
             // that do not appear in "a") return false for contains()
             for v in b.difference(&a) {
-                assert!(!t.contains(v));
+                assert!(!t.contains_key(v));
             }
 
             validate_tree_structure(&t);
@@ -229,11 +229,11 @@ mod tests {
             // values that were inserted.
             for v in &values {
                 // Remove the node (that should exist).
-                assert!(t.contains(v));
+                assert!(t.contains_key(v));
                 assert_eq!(t.remove(v), Some(42));
 
                 // Attempting to remove the value a second time is a no-op.
-                assert!(!t.contains(v));
+                assert!(!t.contains_key(v));
                 assert_eq!(t.remove(v), None);
 
                 // At all times, the tree must be structurally sound.
@@ -256,33 +256,13 @@ mod tests {
                         assert_eq!(t.insert(range.clone(), v), model.insert(range, v));
                     },
                     Op::Get(range) => {
-                        assert_eq!(
-                            t.get(&range),
-                            model.get(&range),
-                            "tree contains() = {:?}, model.contains() = {:?}",
-                            t.get(&range),
-                            model.get(&range)
-                        );
+                        assert_eq!(t.get(&range), model.get(&range));
                     },
-                    Op::Contains(range) => {
-                        assert_eq!(
-                            t.contains(&range),
-                            model.contains_key(&range),
-                            "tree contains() = {}, model.contains() = {}",
-                            t.contains(&range),
-                            model.contains_key(&range)
-                        );
+                    Op::ContainsKey(range) => {
+                        assert_eq!(t.contains_key(&range), model.contains_key(&range));
                     },
                     Op::Remove(range) => {
-                        let t_got = t.remove(&range);
-                        let model_got = model.remove(&range);
-                        assert_eq!(
-                            t_got,
-                            model_got,
-                            "tree remove() = {:?}, model.remove() = {:?}",
-                            t_got,
-                            model_got,
-                        );
+                        assert_eq!(t.remove(&range), model.remove(&range));
                     },
                 }
 
@@ -291,7 +271,7 @@ mod tests {
             }
 
             for (range, _v) in model {
-                assert!(t.contains(&range));
+                assert!(t.contains_key(&range));
             }
         }
 
