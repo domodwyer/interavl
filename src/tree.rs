@@ -60,6 +60,18 @@ where
             .map(|v| (v.interval().as_range(), v.value()))
     }
 
+    /// Returns an [`Iterator`] of entries that precede `range`.
+    pub fn precedes<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().precedes(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
     pub fn remove(&mut self, range: &Range<R>) -> Option<T>
     where
         R: Clone + Debug,
@@ -329,7 +341,7 @@ mod tests {
         /// Ensure that the "overlaps" iter yields only ranges that overlap with
         /// the query range.
         #[test]
-        fn prop_overlaps(
+        fn prop_iter_overlaps(
             query in arbitrary_range(),
             values in prop::collection::vec(
                 arbitrary_range(),
@@ -352,6 +364,35 @@ mod tests {
 
             // Extract all the overlapping ranges.
             let got = t.overlaps(&query).map(|v| v.0).collect::<HashSet<_>>();
+
+            // And assert the sets match.
+            assert_eq!(got, control);
+        }
+
+        #[test]
+        fn prop_iter_precedes(
+            query in arbitrary_range(),
+            values in prop::collection::vec(
+                arbitrary_range(),
+                0..10
+            ),
+        ) {
+            // Collect all the "values" that precede with "query".
+            //
+            // This forms the expected set of results.
+            let control = values
+                .iter()
+                .filter(|&v| Interval::from(v.clone()).precedes(&query))
+                .collect::<HashSet<_>>();
+
+            // Populate the tree.
+            let mut t = IntervalTree::default();
+            for range in &values {
+                t.insert(range.clone(), 42);
+            }
+
+            // Extract all the overlapping ranges.
+            let got = t.precedes(&query).map(|v| v.0).collect::<HashSet<_>>();
 
             // And assert the sets match.
             assert_eq!(got, control);
