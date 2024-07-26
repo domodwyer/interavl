@@ -242,6 +242,13 @@ impl<T, R> Node<T, R> {
             Ordering::Less => self.right(),
         }?;
 
+        // Prune this subtree from the search if the maximum upper bound in the
+        // subtree is less than the search upper bound. If true, this subtree
+        // cannot contain the search range.
+        if *node.subtree_max() < range.end {
+            return None;
+        }
+
         node.get(range)
     }
 
@@ -431,6 +438,13 @@ where
 {
     // Remove the value (if any) and rebalance the tree.
     let remove_ret = node.as_mut().and_then(|v| {
+        // Prune this subtree from the search if the maximum upper bound in the
+        // subtree is less than the search upper bound. If true, this subtree
+        // cannot contain the search range.
+        if *v.subtree_max() < interval.end {
+            return None;
+        }
+
         let ret = v.remove(interval)?;
         rebalance_after_remove(v);
         Some(ret)
