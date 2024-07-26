@@ -29,12 +29,45 @@ where
     }
 }
 
+#[allow(dead_code)]
 impl<T> Interval<T>
 where
     T: Ord,
 {
     pub(crate) fn overlaps(&self, other: &Range<T>) -> bool {
         other.end > self.0.start && other.start < self.0.end
+    }
+
+    pub(crate) fn precedes(&self, other: &Range<T>) -> bool {
+        self.0.end < other.start && self.0.start < other.start
+    }
+
+    pub(crate) fn meets(&self, other: &Range<T>) -> bool {
+        self.0.end == other.start
+    }
+
+    pub(crate) fn is_met_by(&self, other: &Range<T>) -> bool {
+        other.end == self.0.start
+    }
+
+    pub(crate) fn preceded_by(&self, other: &Range<T>) -> bool {
+        other.start < self.0.start && other.end < self.0.start
+    }
+
+    pub(crate) fn starts(&self, other: &Range<T>) -> bool {
+        other.start == self.0.start
+    }
+
+    pub(crate) fn finishes(&self, other: &Range<T>) -> bool {
+        other.end == self.0.end
+    }
+
+    pub(crate) fn during(&self, other: &Range<T>) -> bool {
+        self.0.start >= other.start && self.0.end <= other.end
+    }
+
+    pub(crate) fn contains(&self, other: &Range<T>) -> bool {
+        self.0.start <= other.start && self.0.end >= other.end
     }
 }
 
@@ -107,8 +140,118 @@ mod tests {
         assert!(Interval::from(50..51).overlaps(&a));
 
         // Non-overlapping
-        assert!(!Interval::from(41..42).overlaps(&a));
-        assert!(!Interval::from(100..101).overlaps(&a));
+        assert!(!Interval::from(41..42).overlaps(&a)); // Meets
+        assert!(!Interval::from(100..101).overlaps(&a)); // Meets
+    }
+
+    #[test]
+    fn test_precedes() {
+        let a = 42..100;
+
+        assert!(Interval::from(1..2).precedes(&a));
+        assert!(Interval::from(40..41).precedes(&a));
+
+        assert!(!Interval::from(40..42).precedes(&a)); // Meets
+        assert!(!Interval::from(40..43).precedes(&a)); // Overlaps
+        assert!(!Interval::from(100..101).precedes(&a)); // Preceded by
+    }
+
+    #[test]
+    fn test_preceded_by() {
+        let a = 42..100;
+
+        assert!(Interval::from(101..102).preceded_by(&a));
+
+        assert!(!Interval::from(100..420).preceded_by(&a)); // Meets
+        assert!(!Interval::from(99..420).preceded_by(&a)); // Overlaps
+        assert!(!Interval::from(40..41).preceded_by(&a)); // Precedes
+    }
+
+    #[test]
+    fn test_meets() {
+        let a = 42..100;
+
+        assert!(Interval::from(10..42).meets(&a));
+
+        assert!(!Interval::from(100..420).meets(&a));
+        assert!(!Interval::from(101..420).meets(&a));
+        assert!(!Interval::from(99..420).meets(&a));
+        assert!(!Interval::from(10..43).meets(&a));
+        assert!(!Interval::from(10..41).meets(&a));
+    }
+
+    #[test]
+    fn test_is_met_by() {
+        let a = 42..100;
+
+        assert!(Interval::from(100..420).is_met_by(&a));
+
+        assert!(!Interval::from(10..42).is_met_by(&a));
+        assert!(!Interval::from(101..420).is_met_by(&a));
+        assert!(!Interval::from(99..420).is_met_by(&a));
+        assert!(!Interval::from(10..43).is_met_by(&a));
+        assert!(!Interval::from(10..41).is_met_by(&a));
+    }
+
+    #[test]
+    fn test_starts() {
+        let a = 42..100;
+
+        assert!(Interval::from(42..100).starts(&a));
+        assert!(Interval::from(42..99).starts(&a));
+        assert!(Interval::from(42..101).starts(&a));
+
+        assert!(!Interval::from(41..100).starts(&a));
+        assert!(!Interval::from(41..99).starts(&a));
+        assert!(!Interval::from(41..101).starts(&a));
+        assert!(!Interval::from(43..100).starts(&a));
+        assert!(!Interval::from(43..99).starts(&a));
+        assert!(!Interval::from(43..101).starts(&a));
+    }
+
+    #[test]
+    fn test_finishes() {
+        let a = 42..100;
+
+        assert!(Interval::from(41..100).finishes(&a));
+        assert!(Interval::from(42..100).finishes(&a));
+        assert!(Interval::from(43..100).finishes(&a));
+
+        assert!(!Interval::from(41..99).finishes(&a));
+        assert!(!Interval::from(41..101).finishes(&a));
+        assert!(!Interval::from(43..99).finishes(&a));
+        assert!(!Interval::from(43..101).finishes(&a));
+    }
+
+    #[test]
+    fn test_during() {
+        let a = 42..100;
+
+        assert!(Interval::from(42..100).during(&a));
+        assert!(Interval::from(42..99).during(&a));
+        assert!(Interval::from(43..100).during(&a));
+        assert!(Interval::from(43..99).during(&a));
+
+        assert!(!Interval::from(42..101).during(&a));
+        assert!(!Interval::from(41..99).during(&a));
+        assert!(!Interval::from(41..101).during(&a));
+        assert!(!Interval::from(42..101).during(&a));
+    }
+
+    #[test]
+    fn test_contains() {
+        let a = 42..100;
+
+        assert!(Interval::from(42..100).contains(&a));
+        assert!(Interval::from(42..101).contains(&a));
+        assert!(Interval::from(41..100).contains(&a));
+        assert!(Interval::from(41..101).contains(&a));
+
+        assert!(!Interval::from(41..99).contains(&a));
+        assert!(!Interval::from(42..99).contains(&a));
+        assert!(!Interval::from(43..99).contains(&a));
+        assert!(!Interval::from(43..100).contains(&a));
+        assert!(!Interval::from(43..101).contains(&a));
     }
 
     proptest! {
@@ -145,6 +288,98 @@ mod tests {
             } else {
                 // Otherwise an Interval is ordered by the start bounds.
                 assert_eq!(got, a.start.cmp(&b.start));
+            }
+        }
+
+
+        /// Validate exclusive relations are never returned.
+        #[test]
+        fn prop_exclusive_interval_relations(
+            interval in arbitrary_range(),
+            values in prop::collection::vec(arbitrary_range(), 1..20),
+        ) {
+            let interval = Interval::from(interval);
+
+            for v in &values {
+                let mut truthy = 0;
+
+                if interval.precedes(v) {
+                    println!("{interval} precedes {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.preceded_by(v) {
+                    println!("{interval} preceded_by {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.overlaps(v) {
+                    println!("{interval} overlaps {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.meets(v) {
+                    println!("{interval} meets {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.is_met_by(v) {
+                    println!("{interval} is_met_by {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.during(v) {
+                    println!("{interval} during {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.contains(v) {
+                    println!("{interval} contains {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.starts(v) {
+                    println!("{interval} starts {v:?}");
+                    truthy += 1;
+                }
+
+                if interval.finishes(v) {
+                    println!("{interval} finishes {v:?}");
+                    truthy += 1;
+                }
+
+                if v.is_empty() || interval.as_range().is_empty() {
+                    continue;
+                }
+
+                match truthy {
+                    1 => {}
+                    2 if interval.overlaps(v) && interval.during(v) => {}
+                    3 if interval.overlaps(v) && interval.during(v) && interval.starts(v) => {
+                        assert_eq!(*interval.start(), v.start);
+                    }
+                    3 if interval.overlaps(v) && interval.during(v) && interval.finishes(v) => {
+                        assert_eq!(*interval.end(), v.end);
+                    }
+                    2 if interval.overlaps(v) && interval.contains(v) => {}
+                    3 if interval.overlaps(v) && interval.contains(v) && interval.starts(v) => {
+                        assert_eq!(*interval.start(), v.start);
+                    }
+                    3 if interval.overlaps(v) && interval.contains(v) && interval.finishes(v) => {
+                        assert_eq!(*interval.end(), v.end);
+                    }
+                    5 if interval.overlaps(v)
+                        && interval.starts(v)
+                        && interval.finishes(v)
+                        && interval.contains(v)
+                        && interval.during(v) =>
+                    {
+                        assert_eq!(interval.as_range(), v)
+                    }
+                    _ if v.start > v.end => { /* invalid query range */ }
+                    _ if interval.start() > interval.end() => { /* invalid interval */ }
+                    _ => panic!("non-exclusive relation found"),
+                }
             }
         }
     }
