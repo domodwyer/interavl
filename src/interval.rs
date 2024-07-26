@@ -141,6 +141,11 @@ mod tests {
         // Non-overlapping
         assert!(!Interval::from(41..42).overlaps(&a)); // Meets
         assert!(!Interval::from(100..101).overlaps(&a)); // Meets
+
+        // Point overlap
+        assert!(Interval::from(50..50).overlaps(&a));
+        assert!(!Interval::from(40..40).overlaps(&a));
+        assert!(!Interval::from(101..101).overlaps(&a));
     }
 
     #[test]
