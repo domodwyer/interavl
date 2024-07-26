@@ -76,7 +76,7 @@ where
     // Values per second
     g.bench_function(BenchmarkId::from(bench_name), |b| {
         b.iter(|| {
-            let iter = t.overlaps(&(42..100));
+            let iter = t.iter_overlaps(&(42..100));
             for v in iter {
                 black_box(v);
             }

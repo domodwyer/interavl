@@ -29,7 +29,6 @@ where
     }
 }
 
-#[allow(dead_code)]
 impl<T> Interval<T>
 where
     T: Ord,
@@ -46,7 +45,7 @@ where
         self.0.end == other.start
     }
 
-    pub(crate) fn is_met_by(&self, other: &Range<T>) -> bool {
+    pub(crate) fn met_by(&self, other: &Range<T>) -> bool {
         other.end == self.0.start
     }
 
@@ -181,16 +180,16 @@ mod tests {
     }
 
     #[test]
-    fn test_is_met_by() {
+    fn test_met_by() {
         let a = 42..100;
 
-        assert!(Interval::from(100..420).is_met_by(&a));
+        assert!(Interval::from(100..420).met_by(&a));
 
-        assert!(!Interval::from(10..42).is_met_by(&a));
-        assert!(!Interval::from(101..420).is_met_by(&a));
-        assert!(!Interval::from(99..420).is_met_by(&a));
-        assert!(!Interval::from(10..43).is_met_by(&a));
-        assert!(!Interval::from(10..41).is_met_by(&a));
+        assert!(!Interval::from(10..42).met_by(&a));
+        assert!(!Interval::from(101..420).met_by(&a));
+        assert!(!Interval::from(99..420).met_by(&a));
+        assert!(!Interval::from(10..43).met_by(&a));
+        assert!(!Interval::from(10..41).met_by(&a));
     }
 
     #[test]
@@ -323,8 +322,8 @@ mod tests {
                     truthy += 1;
                 }
 
-                if interval.is_met_by(v) {
-                    println!("{interval} is_met_by {v:?}");
+                if interval.met_by(v) {
+                    println!("{interval} met_by {v:?}");
                     truthy += 1;
                 }
 

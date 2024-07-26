@@ -6,6 +6,10 @@ use crate::{
     node::{remove_recurse, Node, RemoveResult},
 };
 
+// TODO(dom): describe augmentation - requires clone, should be cheap
+
+// TODO(dom): read-optimised
+
 #[derive(Debug, Clone)]
 pub struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
 
@@ -19,12 +23,13 @@ impl<T, R> Default for IntervalTree<T, R> {
 
 impl<T, R> IntervalTree<T, R>
 where
-    R: Ord,
+    R: Ord + Clone + Debug,
 {
-    pub fn insert(&mut self, range: Range<R>, value: T) -> Option<T>
-    where
-        R: Clone,
-    {
+    /// Insert an `(interval, value)` tuple into the tree.
+    ///
+    /// If the interval already existed in the tree, [`Some`] is returned with
+    /// the old value.
+    pub fn insert(&mut self, range: Range<R>, value: T) -> Option<T> {
         let interval = Interval::from(range);
         match self.0 {
             Some(ref mut v) => v.insert(interval, value),
@@ -35,14 +40,34 @@ where
         }
     }
 
+    /// Return a reference to the value associated with the specified `range`,
+    /// if any.
     pub fn get(&self, range: &Range<R>) -> Option<&T> {
         self.0.as_ref().and_then(|v| v.get(range))
     }
 
+    /// Returns `true`` if the tree contains a value for the specified interval.
     pub fn contains_key(&self, range: &Range<R>) -> bool {
         self.get(range).is_some()
     }
 
+    /// Remove the interval and associated value from the tree.
+    ///
+    /// Returns [`None`] if `range` was not present in the tree.
+    pub fn remove(&mut self, range: &Range<R>) -> Option<T> {
+        match remove_recurse(&mut self.0, range)? {
+            RemoveResult::Removed(v) => Some(v),
+            RemoveResult::ParentUnlink => unreachable!(),
+        }
+    }
+
+    /// Iterate over references of all `(interval, value)` tuples stored in this
+    /// tree.
+    ///
+    /// # Ordering
+    ///
+    /// The returned [`Iterator`] yields values from lowest to highest ordered
+    /// by the interval lower bound, with ties broken by the upper bound.
     pub fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
         self.0
             .iter()
@@ -50,7 +75,21 @@ where
             .map(|v| (v.interval().as_range(), v.value()))
     }
 
-    pub fn overlaps<'a>(
+    /// Return all `(interval, value)` tuples that have intervals which overlap
+    /// with the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` overlaps the query range
+    /// `Y`, and `Y` overlaps `X`:
+    ///
+    /// ```text
+    ///                           X
+    ///                   ■■■■■■■■■■■■■■■■■
+    ///
+    ///                               ■■■■■■■■■■■■■■■■■
+    ///                                       Y
+    /// ```
+    ///
+    pub fn iter_overlaps<'a>(
         &'a self,
         range: &'a Range<R>,
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
@@ -60,8 +99,21 @@ where
             .map(|v| (v.interval().as_range(), v.value()))
     }
 
-    /// Returns an [`Iterator`] of entries that precede `range`.
-    pub fn precedes<'a>(
+    /// Return all `(interval, value)` tuples that have intervals which precede
+    /// the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` precedes the query range
+    /// `Y`:
+    ///
+    /// ```text
+    ///                        X
+    ///                ■■■■■■■■■■■■■■■■■
+    ///
+    ///                                    ■■■■■■■■■■■■■■■■■
+    ///                                            Y
+    /// ```
+    ///
+    pub fn iter_precedes<'a>(
         &'a self,
         range: &'a Range<R>,
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
@@ -72,14 +124,179 @@ where
             .map(|v| (v.interval().as_range(), v.value()))
     }
 
-    pub fn remove(&mut self, range: &Range<R>) -> Option<T>
-    where
-        R: Clone + Debug,
-    {
-        match remove_recurse(&mut self.0, range)? {
-            RemoveResult::Removed(v) => Some(v),
-            RemoveResult::ParentUnlink => unreachable!(),
-        }
+    /// Return all `(interval, value)` tuples that have intervals which are
+    /// preceded by the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` is preceded by the query
+    /// range `Y`:
+    ///
+    /// ```text
+    ///                                            X
+    ///                                    ■■■■■■■■■■■■■■■■■
+    ///
+    ///                ■■■■■■■■■■■■■■■■■
+    ///                        Y
+    /// ```
+    ///
+    pub fn iter_preceded_by<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().preceded_by(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    /// Return all `(interval, value)` tuples that have intervals which meet the
+    /// specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` meets the query range
+    /// `Y`:
+    ///
+    /// ```text
+    ///                           X
+    ///                   ■■■■■■■■■■■■■■■■■
+    ///
+    ///                                    ■■■■■■■■■■■■■■■■■
+    ///                                            Y
+    /// ```
+    ///
+    pub fn iter_meets<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().meets(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    /// Return all `(interval, value)` tuples that have intervals which are met
+    /// by the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` is met by the query
+    /// range `Y`:
+    ///
+    /// ```text
+    ///                                            X
+    ///                                    ■■■■■■■■■■■■■■■■■
+    ///
+    ///                   ■■■■■■■■■■■■■■■■■
+    ///                           Y
+    /// ```
+    ///
+    pub fn iter_met_by<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().met_by(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    /// Return all `(interval, value)` tuples that have intervals which are
+    /// started by the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` starts the query range
+    /// `Y`:
+    ///
+    /// ```text
+    ///                                   X
+    ///                           ■■■■■■■■■■■■■■■■■
+    ///
+    ///                           ■■■■■■■■■■■
+    ///                                Y
+    /// ```
+    ///
+    pub fn iter_starts<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().starts(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    /// Return all `(interval, value)` tuples that have intervals which are
+    /// finished by the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` finishes the query range
+    /// `Y`:
+    ///
+    /// ```text
+    ///                                X
+    ///                        ■■■■■■■■■■■■■■■■■
+    ///
+    ///                              ■■■■■■■■■■■
+    ///                                   Y
+    /// ```
+    ///
+    pub fn iter_finishes<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().finishes(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    /// Return all `(interval, value)` tuples that have intervals which are
+    /// during the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` is during the query
+    /// range `Y`:
+    ///
+    /// ```text
+    ///                                X
+    ///                           ■■■■■■■■■■■
+    ///
+    ///                        ■■■■■■■■■■■■■■■■■
+    ///                                Y
+    /// ```
+    ///
+    pub fn iter_during<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().during(range))
+            .map(|v| (v.interval().as_range(), v.value()))
+    }
+
+    /// Return all `(interval, value)` tuples that have intervals which are
+    /// contained by the specified query range.
+    ///
+    /// The diagram below shows two intervals where `X` contains the query range
+    /// `Y`:
+    ///
+    /// ```text
+    ///                                X
+    ///                        ■■■■■■■■■■■■■■■■■
+    ///
+    ///                           ■■■■■■■■■■■
+    ///                                Y
+    /// ```
+    ///
+    pub fn iter_contains<'a>(
+        &'a self,
+        range: &'a Range<R>,
+    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+        self.0
+            .iter()
+            .flat_map(|v| Iter::new(v))
+            .filter(|n| n.interval().contains(range))
+            .map(|v| (v.interval().as_range(), v.value()))
     }
 }
 
@@ -317,67 +534,57 @@ mod tests {
 
             assert_eq!(tuples, values);
         }
-
-        /// Ensure that the "overlaps" iter yields only ranges that overlap with
-        /// the query range.
-        #[test]
-        fn prop_iter_overlaps(
-            query in arbitrary_range(),
-            values in prop::collection::vec(
-                arbitrary_range(),
-                0..10
-            ),
-        ) {
-            // Collect all the "values" that overlap with "query".
-            //
-            // This forms the expected set of results.
-            let control = values
-                .iter()
-                .filter(|v| Interval::from((*v).clone()).overlaps(&query))
-                .collect::<HashSet<_>>();
-
-            // Populate the tree.
-            let mut t = IntervalTree::default();
-            for range in &values {
-                t.insert(range.clone(), 42);
-            }
-
-            // Extract all the overlapping ranges.
-            let got = t.overlaps(&query).map(|v| v.0).collect::<HashSet<_>>();
-
-            // And assert the sets match.
-            assert_eq!(got, control);
-        }
-
-        #[test]
-        fn prop_iter_precedes(
-            query in arbitrary_range(),
-            values in prop::collection::vec(
-                arbitrary_range(),
-                0..10
-            ),
-        ) {
-            // Collect all the "values" that precede with "query".
-            //
-            // This forms the expected set of results.
-            let control = values
-                .iter()
-                .filter(|&v| Interval::from(v.clone()).precedes(&query))
-                .collect::<HashSet<_>>();
-
-            // Populate the tree.
-            let mut t = IntervalTree::default();
-            for range in &values {
-                t.insert(range.clone(), 42);
-            }
-
-            // Extract all the overlapping ranges.
-            let got = t.precedes(&query).map(|v| v.0).collect::<HashSet<_>>();
-
-            // And assert the sets match.
-            assert_eq!(got, control);
-        }
     }
+
+    /// Generate a proptest that asserts the [`IntervalTree`] returns the same
+    /// tuples for a given interval iterator when compared to a control /
+    /// brute-force filter implementation.
+    macro_rules! test_algebraic_iter {
+        ($name:tt) => {
+            paste::paste! {
+                proptest! {
+                    #[test]
+                    fn [<prop_algebraic_iter_ $name>](
+                        query in arbitrary_range(),
+                        values in prop::collection::vec(
+                            arbitrary_range(),
+                            0..10
+                        ),
+                    ) {
+                        // Collect all the "values" that precede with "query".
+                        //
+                        // This forms the expected set of results.
+                        let control = values
+                            .iter()
+                            .filter(|&v| Interval::from(v.clone()).$name(&query))
+                            .collect::<HashSet<_>>();
+
+                        // Populate the tree.
+                        let mut t = IntervalTree::default();
+                        for range in &values {
+                            t.insert(range.clone(), 42);
+                        }
+
+                        // Collect the iterator tuples.
+                        let got = t.[<iter_ $name>](&query).map(|v| v.0).collect::<HashSet<_>>();
+
+                        // And assert the sets match.
+                        assert_eq!(got, control);
+                    }
+                }
+            }
+        };
+    }
+
+    test_algebraic_iter!(overlaps);
+    test_algebraic_iter!(precedes);
+    test_algebraic_iter!(preceded_by);
+    test_algebraic_iter!(meets);
+    test_algebraic_iter!(met_by);
+    test_algebraic_iter!(starts);
+    test_algebraic_iter!(finishes);
+    test_algebraic_iter!(during);
+    test_algebraic_iter!(contains);
 
     /// Assert the BST, AVL and interval tree properties of tree nodes, ensuring
     /// the tree is well-formed.
