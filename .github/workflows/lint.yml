@@ -1,0 +1,30 @@
+name: lint
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    container:
+      image: rust:latest
+
+    steps:
+      - name: ensure node is installed for act
+        if: ${{ env.ACT }}
+        run: command -v node || (apt update && apt install -y nodejs)
+
+      - uses: actions/checkout@v4
+
+      - name: rustup add components
+        run: rustup component add clippy rustfmt
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: docs
+        run: cargo doc --all-features --document-private-items --no-deps

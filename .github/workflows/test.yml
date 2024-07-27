@@ -1,0 +1,21 @@
+name: test
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    container:
+      image: rust:latest
+
+    steps:
+      - name: ensure node is installed for act
+        if: ${{ env.ACT }}
+        run: command -v node || (apt update && apt install -y nodejs)
+
+      - uses: actions/checkout@v4
+
+      - name: test
+        run: cargo test --all-features
