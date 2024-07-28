@@ -1,11 +1,15 @@
 [package]
 name = "interavl"
+description = "An optimised interval tree for efficient interval stabbing"
+authors = ["Dom Dwyer <dom@itsallbroken.com>"]
 version = "0.1.0"
 edition = "2021"
 
 license = "Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+documentation = "https://docs.rs/interavl"
+repository = "https://github.com/domodwyer/interavl"
+keywords = ["interval", "tree", "stabbing", "range", "query"]
+categories = ["data-structures", "algorithms", "date-and-time"]
 
 [dependencies]
 
