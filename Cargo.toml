@@ -10,6 +10,7 @@ documentation = "https://docs.rs/interavl"
 repository = "https://github.com/domodwyer/interavl"
 keywords = ["interval", "tree", "stabbing", "range", "query"]
 categories = ["data-structures", "algorithms", "date-and-time"]
+exclude = [".github"]
 
 [dependencies]
 
