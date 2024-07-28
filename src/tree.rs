@@ -6,10 +6,40 @@ use crate::{
     node::{remove_recurse, Node, RemoveResult},
 };
 
-// TODO(dom): describe augmentation - requires clone, should be cheap
-
-// TODO(dom): read-optimised
-
+/// An [`IntervalTree`] stores `(interval, value)` tuple mappings, enabling
+/// efficient lookup and querying of intervals that match a variety of temporal
+/// relations described by [Allen's interval algebra].
+///
+/// This [`IntervalTree`] stores half-open intervals `[start, end)`.
+///
+///  Point queries can be expressed using a 0-length query interval (an example
+/// for point `42` is the empty interval `[42, 42)`).
+///
+/// # Read Optimised
+///
+/// This [`IntervalTree`] is backed by an augmented AVL tree, and is optimised
+/// for read / search performance.
+///
+/// The internal tree structure is modified during inserts to ensure the tree
+/// always remains balanced. This bound on the worst-case tree height maintains
+/// a logarithmic worst-case lookup time complexity at the cost of constant-time
+/// subtree rotations during insert operations.
+///
+/// ## Node Metadata & `R: Clone`
+///
+/// Tree nodes maintain additional metadata to enable efficient pruning of
+/// entire subtrees during lookup operations. This metadata requires the
+/// interval bound type `R` to implement [`Clone`] which may be invoked during
+/// insert operations.
+///
+/// If cloning `R` is prohibitively expensive consider using a reference-counted
+/// type (such as [`Arc`] or [`Rc`]) to provide a [`Clone`] implementation
+/// without needing to copy the actual content.
+///
+/// [Allen's interval algebra]:
+///     https://en.wikipedia.org/wiki/Allen%27s_interval_algebra
+/// [`Arc`]: std::sync::Arc
+/// [`Rc`]: std::rc::Rc
 #[derive(Debug, Clone)]
 pub struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
 
@@ -82,7 +112,7 @@ where
     }
 
     /// Return all `(interval, value)` tuples that have intervals which overlap
-    /// with the specified query range.
+    /// with the specified query range (an "interval stabbing" query).
     ///
     /// The diagram below shows two intervals where `X` overlaps the query range
     /// `Y`, and `Y` overlaps `X`:
