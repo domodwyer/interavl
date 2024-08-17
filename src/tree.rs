@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
-    iter::{Iter, OverlapsIter},
+    iter::{OverlapsIter, RefIter},
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -107,7 +107,7 @@ where
     pub fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .map(|v| (v.interval().as_range(), v.value()))
     }
 
@@ -155,7 +155,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().precedes(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -180,7 +180,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().preceded_by(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -205,7 +205,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().meets(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -230,7 +230,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().met_by(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -255,7 +255,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().starts(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -280,7 +280,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().finishes(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -305,7 +305,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().during(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
@@ -330,7 +330,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| Iter::new(v))
+            .flat_map(|v| RefIter::new(v))
             .filter(|n| n.interval().contains(range))
             .map(|v| (v.interval().as_range(), v.value()))
     }

@@ -1,11 +1,11 @@
 use crate::node::Node;
 
 #[derive(Debug)]
-pub(crate) struct Iter<'a, T, R> {
+pub(crate) struct RefIter<'a, T, R> {
     stack: Vec<&'a Node<T, R>>,
 }
 
-impl<'a, T, R> Iter<'a, T, R> {
+impl<'a, T, R> RefIter<'a, T, R> {
     pub(crate) fn new(root: &'a Node<T, R>) -> Self {
         let mut this = Self { stack: vec![] };
 
@@ -25,7 +25,7 @@ impl<'a, T, R> Iter<'a, T, R> {
     }
 }
 
-impl<'a, T, R> Iterator for Iter<'a, T, R> {
+impl<'a, T, R> Iterator for RefIter<'a, T, R> {
     type Item = &'a Node<T, R>;
 
     fn next(&mut self) -> Option<Self::Item> {
