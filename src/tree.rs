@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
-    iter::{OverlapsIter, RefIter},
+    iter::{OverlapsIter, OwnedIter, RefIter},
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -336,6 +336,22 @@ where
     }
 }
 
+/// Take ownership of this [`IntervalTree`] instance and iterate over all
+/// `(interval, value)` tuples stored in it.
+///
+/// # Ordering
+///
+/// The returned [`Iterator`] yields values from lowest to highest ordered by
+/// the interval lower bound, with ties broken by the upper bound.
+impl<R, T> std::iter::IntoIterator for IntervalTree<T, R> {
+    type Item = (Range<R>, T);
+    type IntoIter = OwnedIter<T, R>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        OwnedIter::new(self.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{HashMap, HashSet};
@@ -554,7 +570,7 @@ mod tests {
             let mut t = IntervalTree::default();
 
             for (range, value) in &values {
-                t.insert(range.clone(), value);
+                t.insert(range.clone(), *value);
             }
 
             // Collect all tuples from the iterator.
@@ -562,7 +578,7 @@ mod tests {
 
             // The yield ordering is stable.
             {
-                let tuples2 = t.iter().collect::<Vec<_>>();
+                let tuples2 = t.iter().collect::<Vec<(&Range<usize>, &usize)>>();
                 assert_eq!(tuples, tuples2);
             }
 
@@ -578,7 +594,43 @@ mod tests {
             // And all input tuples appear in the iterator output.
             let tuples = tuples
                 .into_iter()
-                .map(|(r, v)| (r.clone(), **v))
+                .map(|(r, v)| (r.clone(), *v))
+                .collect::<HashMap<_, _>>();
+
+            assert_eq!(tuples, values);
+        }
+
+        /// Validate the owned iterator yields all tuples ordered from lowest to
+        /// highest.
+        #[test]
+        fn prop_into_iter(
+            values in prop::collection::hash_map(
+                arbitrary_range(), any::<usize>(),
+                0..N_VALUES
+            ),
+        ) {
+            let mut t = IntervalTree::default();
+
+            for (range, value) in &values {
+                t.insert(range.clone(), *value);
+            }
+
+            // Collect all tuples from the iterator.
+            let tuples = t.into_iter().collect::<Vec<(Range<usize>, usize)>>();
+
+            // Assert the tuples are ordered consistently with how the Interval
+            // orders ranges (lowest to highest, by start bounds and tie-broken
+            // by end bounds).
+            for window in tuples.windows(2) {
+                let a = Interval::from(window[0].0.clone());
+                let b = Interval::from(window[1].0.clone());
+                assert!(a < b);
+            }
+
+            // And all input tuples appear in the iterator output.
+            let tuples = tuples
+                .into_iter()
+                .map(|(r, v)| (r.clone(), v))
                 .collect::<HashMap<_, _>>();
 
             assert_eq!(tuples, values);

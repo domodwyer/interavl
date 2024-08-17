@@ -18,6 +18,9 @@ impl<T> Interval<T> {
     pub(crate) fn as_range(&self) -> &Range<T> {
         &self.0
     }
+    pub(crate) fn into_range(self) -> Range<T> {
+        self.0
+    }
 }
 
 impl<T> Display for Interval<T>

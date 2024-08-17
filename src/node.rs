@@ -296,12 +296,27 @@ impl<T, R> Node<T, R> {
         self.left.as_mut()
     }
 
+    /// Remove the left child, if any.
+    pub(crate) fn take_left(&mut self) -> Option<Box<Self>> {
+        self.left.take()
+    }
+
     pub(crate) fn right(&self) -> Option<&Self> {
         self.right.as_deref()
     }
 
     pub(crate) fn right_mut(&mut self) -> Option<&mut Box<Self>> {
         self.right.as_mut()
+    }
+
+    /// Remove the right child, if any.
+    pub(crate) fn take_right(&mut self) -> Option<Box<Self>> {
+        self.right.take()
+    }
+
+    /// Explode this [`Node`] into the [`Range`] and value `T` it contains.
+    pub(crate) fn into_tuple(self) -> (Range<R>, T) {
+        (self.interval.into_range(), self.value)
     }
 }
 
