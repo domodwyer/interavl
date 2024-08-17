@@ -3,16 +3,16 @@ use std::{fmt::Debug, ops::Range};
 use crate::node::Node;
 
 #[derive(Debug)]
-pub(crate) struct OverlapsIter<'a, T, R> {
+pub(crate) struct OverlapsIter<'a, R, V> {
     query: &'a Range<R>,
-    stack: Vec<&'a Node<R, T>>,
+    stack: Vec<&'a Node<R, V>>,
 }
 
-impl<'a, T, R> OverlapsIter<'a, T, R>
+impl<'a, R, V> OverlapsIter<'a, R, V>
 where
     R: Ord,
 {
-    pub(crate) fn new(root: &'a Node<R, T>, query: &'a Range<R>) -> Self {
+    pub(crate) fn new(root: &'a Node<R, V>, query: &'a Range<R>) -> Self {
         let mut this = Self {
             stack: vec![],
             query,
@@ -25,7 +25,7 @@ where
         this
     }
 
-    fn push_subtree(&mut self, subtree_root: &'a Node<R, T>) {
+    fn push_subtree(&mut self, subtree_root: &'a Node<R, V>) {
         let mut ptr = Some(subtree_root);
 
         while let Some(v) = ptr {
@@ -43,11 +43,11 @@ where
     }
 }
 
-impl<'a, T, R> Iterator for OverlapsIter<'a, T, R>
+impl<'a, R, V> Iterator for OverlapsIter<'a, R, V>
 where
     R: Ord,
 {
-    type Item = &'a Node<R, T>;
+    type Item = &'a Node<R, V>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

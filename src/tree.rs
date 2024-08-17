@@ -12,7 +12,7 @@ use crate::{
 ///
 /// This [`IntervalTree`] stores half-open intervals `[start, end)`.
 ///
-///  Point queries can be expressed using a 0-length query interval (an example
+/// Point queries can be expressed using a 0-length query interval (an example
 /// for point `42` is the empty interval `[42, 42)`).
 ///
 /// # Read Optimised
@@ -41,9 +41,9 @@ use crate::{
 /// [`Arc`]: std::sync::Arc
 /// [`Rc`]: std::rc::Rc
 #[derive(Debug, Clone)]
-pub struct IntervalTree<R, T>(Option<Box<Node<R, T>>>);
+pub struct IntervalTree<R, V>(Option<Box<Node<R, V>>>);
 
-impl<R, T> Default for IntervalTree<R, T> {
+impl<R, V> Default for IntervalTree<R, V> {
     fn default() -> Self {
         Self(Default::default())
     }
@@ -51,7 +51,7 @@ impl<R, T> Default for IntervalTree<R, T> {
 
 // TODO(dom): entry + entry_mut -> Vec
 
-impl<R, T> IntervalTree<R, T>
+impl<R, V> IntervalTree<R, V>
 where
     R: Ord + Clone + Debug,
 {
@@ -59,7 +59,7 @@ where
     ///
     /// If the interval already existed in the tree, [`Some`] is returned with
     /// the old value.
-    pub fn insert(&mut self, range: Range<R>, value: T) -> Option<T> {
+    pub fn insert(&mut self, range: Range<R>, value: V) -> Option<V> {
         let interval = Interval::from(range);
         match self.0 {
             Some(ref mut v) => v.insert(interval, value),
@@ -72,13 +72,13 @@ where
 
     /// Return a reference to the value associated with the specified `range`,
     /// if any.
-    pub fn get(&self, range: &Range<R>) -> Option<&T> {
+    pub fn get(&self, range: &Range<R>) -> Option<&V> {
         self.0.as_ref().and_then(|v| v.get(range))
     }
 
     /// Return a mutable reference to the value associated with the specified
     /// `range`, if any.
-    pub fn get_mut(&mut self, range: &Range<R>) -> Option<&mut T> {
+    pub fn get_mut(&mut self, range: &Range<R>) -> Option<&mut V> {
         self.0.as_mut().and_then(|v| v.get_mut(range))
     }
 
@@ -90,7 +90,7 @@ where
     /// Remove the interval and associated value from the tree.
     ///
     /// Returns [`None`] if `range` was not present in the tree.
-    pub fn remove(&mut self, range: &Range<R>) -> Option<T> {
+    pub fn remove(&mut self, range: &Range<R>) -> Option<V> {
         match remove_recurse(&mut self.0, range)? {
             RemoveResult::Removed(v) => Some(v),
             RemoveResult::ParentUnlink => unreachable!(),
@@ -104,7 +104,7 @@ where
     ///
     /// The returned [`Iterator`] yields values from lowest to highest ordered
     /// by the interval lower bound, with ties broken by the upper bound.
-    pub fn iter(&self) -> impl Iterator<Item = (&Range<R>, &T)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Range<R>, &V)> {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -128,7 +128,7 @@ where
     pub fn iter_overlaps<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| OverlapsIter::new(v, range))
@@ -152,7 +152,7 @@ where
     pub fn iter_precedes<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -177,7 +177,7 @@ where
     pub fn iter_preceded_by<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -202,7 +202,7 @@ where
     pub fn iter_meets<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -227,7 +227,7 @@ where
     pub fn iter_met_by<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -252,7 +252,7 @@ where
     pub fn iter_starts<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -277,7 +277,7 @@ where
     pub fn iter_finishes<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -302,7 +302,7 @@ where
     pub fn iter_during<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -327,7 +327,7 @@ where
     pub fn iter_contains<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &T)> + 'a {
+    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
             .flat_map(|v| RefIter::new(v))
@@ -343,9 +343,9 @@ where
 ///
 /// The returned [`Iterator`] yields values from lowest to highest ordered by
 /// the interval lower bound, with ties broken by the upper bound.
-impl<R, T> std::iter::IntoIterator for IntervalTree<R, T> {
-    type Item = (Range<R>, T);
-    type IntoIter = OwnedIter<R, T>;
+impl<R, V> std::iter::IntoIterator for IntervalTree<R, V> {
+    type Item = (Range<R>, V);
+    type IntoIter = OwnedIter<R, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         OwnedIter::new(self.0)
@@ -689,10 +689,10 @@ mod tests {
 
     /// Assert the BST, AVL and interval tree properties of tree nodes, ensuring
     /// the tree is well-formed.
-    fn validate_tree_structure<R, T>(t: &IntervalTree<R, T>)
+    fn validate_tree_structure<R, V>(t: &IntervalTree<R, V>)
     where
         R: Ord + PartialEq + Debug + Clone,
-        T: Debug,
+        V: Debug,
     {
         let root = match t.0.as_deref() {
             Some(v) => v,

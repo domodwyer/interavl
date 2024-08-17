@@ -13,10 +13,10 @@ pub(super) enum RemoveResult<T> {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Node<R, T> {
+pub(crate) struct Node<R, V> {
     /// Child nodes pointers.
-    left: Option<Box<Node<R, T>>>,
-    right: Option<Box<Node<R, T>>>,
+    left: Option<Box<Node<R, V>>>,
+    right: Option<Box<Node<R, V>>>,
 
     /// The node's AVL height.
     ///
@@ -31,11 +31,11 @@ pub(crate) struct Node<R, T> {
     subtree_max: R,
 
     interval: Interval<R>,
-    value: T,
+    value: V,
 }
 
-impl<R, T> Node<R, T> {
-    pub(crate) fn new(interval: Interval<R>, value: T) -> Self
+impl<R, V> Node<R, V> {
+    pub(crate) fn new(interval: Interval<R>, value: V) -> Self
     where
         R: Clone,
     {
@@ -49,7 +49,7 @@ impl<R, T> Node<R, T> {
         }
     }
 
-    pub(crate) fn insert(self: &mut Box<Self>, interval: Interval<R>, value: T) -> Option<T>
+    pub(crate) fn insert(self: &mut Box<Self>, interval: Interval<R>, value: V) -> Option<V>
     where
         R: Ord + Clone,
     {
@@ -123,7 +123,7 @@ impl<R, T> Node<R, T> {
         None
     }
 
-    pub(super) fn remove(self: &mut Box<Self>, range: &Range<R>) -> Option<RemoveResult<T>>
+    pub(super) fn remove(self: &mut Box<Self>, range: &Range<R>) -> Option<RemoveResult<V>>
     where
         R: Ord + Clone + Debug,
     {
@@ -232,7 +232,7 @@ impl<R, T> Node<R, T> {
         Some(RemoveResult::Removed(old.value))
     }
 
-    pub(crate) fn get(&self, range: &Range<R>) -> Option<&T>
+    pub(crate) fn get(&self, range: &Range<R>) -> Option<&V>
     where
         R: Ord + Eq,
     {
@@ -252,7 +252,7 @@ impl<R, T> Node<R, T> {
         node.get(range)
     }
 
-    pub(crate) fn get_mut(&mut self, range: &Range<R>) -> Option<&mut T>
+    pub(crate) fn get_mut(&mut self, range: &Range<R>) -> Option<&mut V>
     where
         R: Ord + Eq,
     {
@@ -272,7 +272,7 @@ impl<R, T> Node<R, T> {
         node.get_mut(range)
     }
 
-    pub(crate) fn value(&self) -> &T {
+    pub(crate) fn value(&self) -> &V {
         &self.value
     }
 
@@ -314,17 +314,17 @@ impl<R, T> Node<R, T> {
         self.right.take()
     }
 
-    /// Explode this [`Node`] into the [`Range`] and value `T` it contains.
-    pub(crate) fn into_tuple(self) -> (Range<R>, T) {
+    /// Explode this [`Node`] into the [`Range`] and value `V` it contains.
+    pub(crate) fn into_tuple(self) -> (Range<R>, V) {
         (self.interval.into_range(), self.value)
     }
 }
 
-fn height<R, T>(n: Option<&Node<R, T>>) -> u8 {
+fn height<R, V>(n: Option<&Node<R, V>>) -> u8 {
     n.map(|v| v.height()).unwrap_or_default()
 }
 
-fn update_height<R, T>(n: &mut Node<R, T>) {
+fn update_height<R, V>(n: &mut Node<R, V>) {
     n.height = n
         .left()
         .map(|v| v.height() + 1)
@@ -332,7 +332,7 @@ fn update_height<R, T>(n: &mut Node<R, T>) {
         .unwrap_or_default()
 }
 
-fn update_subtree_max<R, T>(n: &mut Node<R, T>)
+fn update_subtree_max<R, V>(n: &mut Node<R, V>)
 where
     R: Ord + Clone,
 {
@@ -351,7 +351,7 @@ where
 ///
 /// Returns the subtree height skew / magnitude, which is a positive number when
 /// left heavy, and a negative number when right heavy.
-fn balance<R, T>(n: &Node<R, T>) -> i8 {
+fn balance<R, V>(n: &Node<R, V>) -> i8 {
     // Correctness: the height is a u8, the maximal value of which fits in an
     // i16 without truncation or sign inversion.
     (height(n.left()) as i16 - height(n.right()) as i16) as i8
@@ -373,7 +373,7 @@ fn balance<R, T>(n: &Node<R, T>) -> i8 {
 /// # Panics
 ///
 /// Panics if `x` has no right pointer (cannot be rotated).
-fn rotate_left<R, T>(x: &mut Box<Node<R, T>>)
+fn rotate_left<R, V>(x: &mut Box<Node<R, V>>)
 where
     R: Ord + Clone,
 {
@@ -404,7 +404,7 @@ where
 /// # Panics
 ///
 /// Panics if `y` has no left pointer (cannot be rotated).
-fn rotate_right<R, T>(y: &mut Box<Node<R, T>>)
+fn rotate_right<R, V>(y: &mut Box<Node<R, V>>)
 where
     R: Ord + Clone,
 {
@@ -423,7 +423,7 @@ where
 /// Extracts the node holding the minimum subtree value in a descendent of
 /// `root`, if any, linking the right subtree of the extracted node to in its
 /// place.
-fn extract_subtree_min<R, T>(root: &mut Box<Node<R, T>>) -> Option<Box<Node<R, T>>>
+fn extract_subtree_min<R, V>(root: &mut Box<Node<R, V>>) -> Option<Box<Node<R, V>>>
 where
     R: Ord + Clone,
 {
@@ -464,10 +464,10 @@ where
 /// Clears the `node` pointer if the [`Node::remove()`] call returns
 /// [`RemoveResult::ParentUnlink`], returning the extracted value within a
 /// [`RemoveResult::Removed`] variant.
-pub(super) fn remove_recurse<R, T>(
-    node: &mut Option<Box<Node<R, T>>>,
+pub(super) fn remove_recurse<R, V>(
+    node: &mut Option<Box<Node<R, V>>>,
     interval: &Range<R>,
-) -> Option<RemoveResult<T>>
+) -> Option<RemoveResult<V>>
 where
     R: Ord + Clone + Debug,
 {
@@ -498,7 +498,7 @@ where
     Some(RemoveResult::Removed(v))
 }
 
-fn rebalance_after_remove<R, T>(v: &mut Box<Node<R, T>>)
+fn rebalance_after_remove<R, V>(v: &mut Box<Node<R, V>>)
 where
     R: Ord + Clone,
 {
@@ -537,7 +537,7 @@ where
 mod tests {
     use super::*;
 
-    fn add_left<R, T>(n: &mut Node<R, T>, interval: impl Into<Interval<R>>, v: T) -> &mut Node<R, T>
+    fn add_left<R, V>(n: &mut Node<R, V>, interval: impl Into<Interval<R>>, v: V) -> &mut Node<R, V>
     where
         R: Clone,
     {
@@ -546,11 +546,11 @@ mod tests {
         n.left_mut().unwrap()
     }
 
-    fn add_right<R, T>(
-        n: &mut Node<R, T>,
+    fn add_right<R, V>(
+        n: &mut Node<R, V>,
         interval: impl Into<Interval<R>>,
-        v: T,
-    ) -> &mut Node<R, T>
+        v: V,
+    ) -> &mut Node<R, V>
     where
         R: Clone,
     {
