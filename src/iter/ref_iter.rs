@@ -2,11 +2,11 @@ use crate::node::Node;
 
 #[derive(Debug)]
 pub(crate) struct RefIter<'a, T, R> {
-    stack: Vec<&'a Node<T, R>>,
+    stack: Vec<&'a Node<R, T>>,
 }
 
 impl<'a, T, R> RefIter<'a, T, R> {
-    pub(crate) fn new(root: &'a Node<T, R>) -> Self {
+    pub(crate) fn new(root: &'a Node<R, T>) -> Self {
         let mut this = Self { stack: vec![] };
 
         // Descend down the left side of the tree.
@@ -15,7 +15,7 @@ impl<'a, T, R> RefIter<'a, T, R> {
         this
     }
 
-    fn push_subtree(&mut self, subtree_root: &'a Node<T, R>) {
+    fn push_subtree(&mut self, subtree_root: &'a Node<R, T>) {
         let mut ptr = Some(subtree_root);
 
         while let Some(v) = ptr {
@@ -26,7 +26,7 @@ impl<'a, T, R> RefIter<'a, T, R> {
 }
 
 impl<'a, T, R> Iterator for RefIter<'a, T, R> {
-    type Item = &'a Node<T, R>;
+    type Item = &'a Node<R, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let v = self.stack.pop()?;

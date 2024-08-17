@@ -42,7 +42,7 @@ where
     bench_overlaps(n_values, g, &t);
 }
 
-fn bench_iter<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<usize, u16>)
+fn bench_iter<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<u16, usize>)
 where
     M: Measurement,
 {
@@ -63,7 +63,7 @@ where
     });
 }
 
-fn bench_overlaps<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<usize, u16>)
+fn bench_overlaps<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<u16, usize>)
 where
     M: Measurement,
 {

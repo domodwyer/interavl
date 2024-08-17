@@ -5,14 +5,14 @@ use crate::node::Node;
 #[derive(Debug)]
 pub(crate) struct OverlapsIter<'a, T, R> {
     query: &'a Range<R>,
-    stack: Vec<&'a Node<T, R>>,
+    stack: Vec<&'a Node<R, T>>,
 }
 
 impl<'a, T, R> OverlapsIter<'a, T, R>
 where
     R: Ord,
 {
-    pub(crate) fn new(root: &'a Node<T, R>, query: &'a Range<R>) -> Self {
+    pub(crate) fn new(root: &'a Node<R, T>, query: &'a Range<R>) -> Self {
         let mut this = Self {
             stack: vec![],
             query,
@@ -25,7 +25,7 @@ where
         this
     }
 
-    fn push_subtree(&mut self, subtree_root: &'a Node<T, R>) {
+    fn push_subtree(&mut self, subtree_root: &'a Node<R, T>) {
         let mut ptr = Some(subtree_root);
 
         while let Some(v) = ptr {
@@ -47,7 +47,7 @@ impl<'a, T, R> Iterator for OverlapsIter<'a, T, R>
 where
     R: Ord,
 {
-    type Item = &'a Node<T, R>;
+    type Item = &'a Node<R, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

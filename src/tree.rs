@@ -41,9 +41,9 @@ use crate::{
 /// [`Arc`]: std::sync::Arc
 /// [`Rc`]: std::rc::Rc
 #[derive(Debug, Clone)]
-pub struct IntervalTree<T, R>(Option<Box<Node<T, R>>>);
+pub struct IntervalTree<R, T>(Option<Box<Node<R, T>>>);
 
-impl<T, R> Default for IntervalTree<T, R> {
+impl<R, T> Default for IntervalTree<R, T> {
     fn default() -> Self {
         Self(Default::default())
     }
@@ -51,7 +51,7 @@ impl<T, R> Default for IntervalTree<T, R> {
 
 // TODO(dom): entry + entry_mut -> Vec
 
-impl<T, R> IntervalTree<T, R>
+impl<R, T> IntervalTree<R, T>
 where
     R: Ord + Clone + Debug,
 {
@@ -343,9 +343,9 @@ where
 ///
 /// The returned [`Iterator`] yields values from lowest to highest ordered by
 /// the interval lower bound, with ties broken by the upper bound.
-impl<R, T> std::iter::IntoIterator for IntervalTree<T, R> {
+impl<R, T> std::iter::IntoIterator for IntervalTree<R, T> {
     type Item = (Range<R>, T);
-    type IntoIter = OwnedIter<T, R>;
+    type IntoIter = OwnedIter<R, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         OwnedIter::new(self.0)
@@ -689,7 +689,7 @@ mod tests {
 
     /// Assert the BST, AVL and interval tree properties of tree nodes, ensuring
     /// the tree is well-formed.
-    fn validate_tree_structure<T, R>(t: &IntervalTree<T, R>)
+    fn validate_tree_structure<R, T>(t: &IntervalTree<R, T>)
     where
         R: Ord + PartialEq + Debug + Clone,
         T: Debug,

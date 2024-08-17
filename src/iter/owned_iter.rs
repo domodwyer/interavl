@@ -5,12 +5,12 @@ use crate::node::Node;
 /// An iterator of owned [`Node`] instances as the underlying tree `into_iter()`
 /// impl.
 #[derive(Debug)]
-pub struct OwnedIter<T, R> {
-    stack: Vec<Box<Node<T, R>>>,
+pub struct OwnedIter<R, T> {
+    stack: Vec<Box<Node<R, T>>>,
 }
 
-impl<T, R> OwnedIter<T, R> {
-    pub(crate) fn new(root: Option<Box<Node<T, R>>>) -> Self {
+impl<R, T> OwnedIter<R, T> {
+    pub(crate) fn new(root: Option<Box<Node<R, T>>>) -> Self {
         let mut this = Self { stack: vec![] };
 
         // Descend down the left side of the tree.
@@ -21,7 +21,7 @@ impl<T, R> OwnedIter<T, R> {
         this
     }
 
-    fn push_subtree(&mut self, subtree_root: Box<Node<T, R>>) {
+    fn push_subtree(&mut self, subtree_root: Box<Node<R, T>>) {
         let mut ptr = Some(subtree_root);
 
         while let Some(mut v) = ptr {
@@ -31,7 +31,7 @@ impl<T, R> OwnedIter<T, R> {
     }
 }
 
-impl<T, R> Iterator for OwnedIter<T, R> {
+impl<R, T> Iterator for OwnedIter<R, T> {
     type Item = (Range<R>, T);
 
     fn next(&mut self) -> Option<Self::Item> {
