@@ -59,3 +59,17 @@ where
         n.interval().preceded_by(query)
     }
 }
+
+pub(crate) struct MetByPruner;
+impl<R, V> PruningOracle<R, V> for MetByPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.end <= *subtree_root.subtree_max()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().met_by(query)
+    }
+}
