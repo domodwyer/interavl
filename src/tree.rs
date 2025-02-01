@@ -36,6 +36,11 @@ use crate::{
 /// type (such as [`Arc`] or [`Rc`]) to provide a [`Clone`] implementation
 /// without needing to copy the actual content.
 ///
+/// ## Invalid Intervals
+///
+/// This implementation will accept invalid intervals such as `[42, 0)` without
+/// panicking but iteration results are undefined for these invalid intervals.
+///
 /// [Allen's interval algebra]:
 ///     https://en.wikipedia.org/wiki/Allen%27s_interval_algebra
 /// [`Arc`]: std::sync::Arc
@@ -657,6 +662,7 @@ mod tests {
                         // This forms the expected set of results.
                         let control = values
                             .iter()
+                            .filter(|&v| is_sane_interval(v))
                             .filter(|&v| Interval::from(v.clone()).$name(&query))
                             .collect::<HashSet<_>>();
 
@@ -667,7 +673,11 @@ mod tests {
                         }
 
                         // Collect the iterator tuples.
-                        let got = t.[<iter_ $name>](&query).map(|v| v.0).collect::<HashSet<_>>();
+                        let got = t
+                            .[<iter_ $name>](&query)
+                            .map(|v| v.0)
+                            .filter(|&v| is_sane_interval(v))
+                            .collect::<HashSet<_>>();
 
                         // And assert the sets match.
                         assert_eq!(got, control);
@@ -675,6 +685,14 @@ mod tests {
                 }
             }
         };
+    }
+
+    /// Returns true if `r` is a valid interval.
+    fn is_sane_interval<R>(r: &Range<R>) -> bool
+    where
+        R: Ord,
+    {
+        r.start <= r.end
     }
 
     test_algebraic_iter!(overlaps);
