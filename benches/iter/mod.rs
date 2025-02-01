@@ -40,6 +40,14 @@ where
 
     bench_iter(n_values, g, &t);
     bench_overlaps(n_values, g, &t);
+    bench_meets(n_values, g, &t);
+    bench_precedes(n_values, g, &t);
+    bench_preceded_by(n_values, g, &t);
+    bench_met_by(n_values, g, &t);
+    bench_starts(n_values, g, &t);
+    bench_finishes(n_values, g, &t);
+    bench_during(n_values, g, &t);
+    bench_contains(n_values, g, &t);
 }
 
 fn bench_iter<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<u16, usize>)
@@ -93,3 +101,11 @@ macro_rules! iter_bench {
 }
 
 iter_bench!(overlaps);
+iter_bench!(meets);
+iter_bench!(precedes);
+iter_bench!(preceded_by);
+iter_bench!(met_by);
+iter_bench!(starts);
+iter_bench!(finishes);
+iter_bench!(during);
+iter_bench!(contains);
