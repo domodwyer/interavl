@@ -9,11 +9,11 @@ impl<R, V> PruningOracle<R, V> for OverlapsPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.end > *subtree_root.interval().start()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().overlaps(query)
     }
 }
@@ -23,11 +23,11 @@ impl<R, V> PruningOracle<R, V> for MeetsPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.start >= *subtree_root.interval().start()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().meets(query)
     }
 }
@@ -37,11 +37,11 @@ impl<R, V> PruningOracle<R, V> for PrecedesPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.start > *subtree_root.interval().start()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().precedes(query)
     }
 }
@@ -51,11 +51,11 @@ impl<R, V> PruningOracle<R, V> for PrecededByPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.end < *subtree_root.subtree_max()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().preceded_by(query)
     }
 }
@@ -65,11 +65,11 @@ impl<R, V> PruningOracle<R, V> for MetByPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.end <= *subtree_root.subtree_max()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().met_by(query)
     }
 }
@@ -79,11 +79,11 @@ impl<R, V> PruningOracle<R, V> for StartsPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.start >= *subtree_root.interval().start()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().starts(query)
     }
 }
@@ -93,11 +93,11 @@ impl<R, V> PruningOracle<R, V> for FinishesPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.end <= *subtree_root.subtree_max()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().finishes(query)
     }
 }
@@ -107,11 +107,11 @@ impl<R, V> PruningOracle<R, V> for DuringPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.end >= *subtree_root.interval().start()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().during(query)
     }
 }
@@ -121,11 +121,11 @@ impl<R, V> PruningOracle<R, V> for ContainsPruner
 where
     R: Ord,
 {
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
         query.start >= *subtree_root.interval().start()
     }
 
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool {
         n.interval().contains(query)
     }
 }

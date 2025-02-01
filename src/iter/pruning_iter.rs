@@ -1,15 +1,15 @@
-use std::{marker::PhantomData, ops::Range};
+use std::ops::Range;
 
 use crate::node::Node;
 
 pub(crate) trait PruningOracle<R, V> {
     /// Returns true when the right node and subtree rooted at `subtree_root`
     /// should be descended into and evaluated.
-    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool;
+    fn visit_right(&self, subtree_root: &Node<R, V>, query: &Range<R>) -> bool;
 
     /// Returns true if `n` satisfies the pruning logic and should be yielded to
     /// the caller.
-    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool;
+    fn filter_yield(&self, n: &Node<R, V>, query: &Range<R>) -> bool;
 }
 
 /// An [`Iterator`] that performs a depth-first, in-order walk of a subtree and
@@ -18,7 +18,7 @@ pub(crate) trait PruningOracle<R, V> {
 pub(crate) struct PruningIter<'a, R, V, T> {
     query: &'a Range<R>,
     stack: Vec<&'a Node<R, V>>,
-    pruner: PhantomData<T>,
+    pruner: T,
 }
 
 impl<'a, R, V, T> PruningIter<'a, R, V, T>
@@ -26,11 +26,11 @@ where
     R: Ord,
     T: PruningOracle<R, V>,
 {
-    pub(crate) fn new(root: &'a Node<R, V>, query: &'a Range<R>) -> Self {
+    pub(crate) fn new(root: &'a Node<R, V>, query: &'a Range<R>, pruner: T) -> Self {
         let mut this = Self {
             stack: vec![],
             query,
-            pruner: PhantomData::default(),
+            pruner,
         };
 
         // Descend down the left side of the tree, pushing all the internal
@@ -61,7 +61,7 @@ where
         loop {
             let v = self.stack.pop()?;
 
-            if !T::visit_right(v, self.query) {
+            if !self.pruner.visit_right(v, self.query) {
                 // Prune this node and the right subtree from the search.
                 continue;
             }
@@ -72,7 +72,7 @@ where
             }
 
             // Yield this node if it satisfies the pruning predicate.
-            if T::filter_yield(v, self.query) {
+            if self.pruner.filter_yield(v, self.query) {
                 return Some(v);
             }
         }
