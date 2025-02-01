@@ -73,3 +73,17 @@ where
         n.interval().met_by(query)
     }
 }
+
+pub(crate) struct StartsPruner;
+impl<R, V> PruningOracle<R, V> for StartsPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.start <= *subtree_root.subtree_max()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().starts(query)
+    }
+}
