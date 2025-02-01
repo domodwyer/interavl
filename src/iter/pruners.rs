@@ -31,3 +31,17 @@ where
         n.interval().meets(query)
     }
 }
+
+pub(crate) struct PrecedesPruner;
+impl<R, V> PruningOracle<R, V> for PrecedesPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.start > *subtree_root.interval().start()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().precedes(query)
+    }
+}

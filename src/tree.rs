@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
-    iter::{MeetsPruner, OverlapsPruner, OwnedIter, PruningIter, RefIter},
+    iter::{MeetsPruner, OverlapsPruner, OwnedIter, PrecedesPruner, PruningIter, RefIter},
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -160,8 +160,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| RefIter::new(v))
-            .filter(|n| n.interval().precedes(range))
+            .flat_map(|v| PruningIter::<_, _, PrecedesPruner>::new(v, range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
 
@@ -650,7 +649,7 @@ mod tests {
                 proptest! {
                     #[test]
                     fn [<prop_algebraic_iter_ $name>](
-                        query in arbitrary_range(),
+                        query in arbitrary_range().prop_filter("invalid query interval", is_sane_interval),
                         values in prop::collection::vec(
                             arbitrary_range(),
                             0..10
