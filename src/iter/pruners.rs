@@ -87,3 +87,17 @@ where
         n.interval().starts(query)
     }
 }
+
+pub(crate) struct FinishesPruner;
+impl<R, V> PruningOracle<R, V> for FinishesPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.end <= *subtree_root.subtree_max()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().finishes(query)
+    }
+}
