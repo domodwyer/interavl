@@ -45,3 +45,17 @@ where
         n.interval().precedes(query)
     }
 }
+
+pub(crate) struct PrecededByPruner;
+impl<R, V> PruningOracle<R, V> for PrecededByPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.end < *subtree_root.subtree_max()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().preceded_by(query)
+    }
+}
