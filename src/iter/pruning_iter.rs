@@ -1,21 +1,36 @@
-use std::{fmt::Debug, ops::Range};
+use std::{marker::PhantomData, ops::Range};
 
 use crate::node::Node;
 
-#[derive(Debug)]
-pub(crate) struct OverlapsIter<'a, R, V> {
-    query: &'a Range<R>,
-    stack: Vec<&'a Node<R, V>>,
+pub(crate) trait PruningOracle<R, V> {
+    /// Returns true when the right node and subtree rooted at `subtree_root`
+    /// should be descended into and evaluated.
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool;
+
+    /// Returns true if `n` satisfies the pruning logic and should be yielded to
+    /// the caller.
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool;
 }
 
-impl<'a, R, V> OverlapsIter<'a, R, V>
+/// An [`Iterator`] that performs a depth-first, in-order walk of a subtree and
+/// yields [`Node`] instances that match a pruning predicate.
+#[derive(Debug)]
+pub(crate) struct PruningIter<'a, R, V, T> {
+    query: &'a Range<R>,
+    stack: Vec<&'a Node<R, V>>,
+    pruner: PhantomData<T>,
+}
+
+impl<'a, R, V, T> PruningIter<'a, R, V, T>
 where
     R: Ord,
+    T: PruningOracle<R, V>,
 {
     pub(crate) fn new(root: &'a Node<R, V>, query: &'a Range<R>) -> Self {
         let mut this = Self {
             stack: vec![],
             query,
+            pruner: PhantomData::default(),
         };
 
         // Descend down the left side of the tree, pushing all the internal
@@ -29,23 +44,16 @@ where
         let mut ptr = Some(subtree_root);
 
         while let Some(v) = ptr {
-            if self.query.start >= *v.subtree_max() {
-                // Prune this subtree rooted at "v" from the search.
-                //
-                // All intervals in this subtree are strictly less than the
-                // query range.
-                break;
-            }
-
             self.stack.push(v);
             ptr = v.left();
         }
     }
 }
 
-impl<'a, R, V> Iterator for OverlapsIter<'a, R, V>
+impl<'a, R, V, T> Iterator for PruningIter<'a, R, V, T>
 where
     R: Ord,
+    T: PruningOracle<R, V>,
 {
     type Item = &'a Node<R, V>;
 
@@ -53,11 +61,8 @@ where
         loop {
             let v = self.stack.pop()?;
 
-            if self.query.end <= *v.interval().start() {
+            if !T::visit_right(v, self.query) {
                 // Prune this node and the right subtree from the search.
-                //
-                // All values in the right subtree are strictly greater than the
-                // query range.
                 continue;
             }
 
@@ -66,8 +71,8 @@ where
                 self.push_subtree(right);
             }
 
-            // Yield this node if it overlaps with the query range.
-            if v.interval().overlaps(self.query) {
+            // Yield this node if it satisfies the pruning predicate.
+            if T::filter_yield(v, self.query) {
                 return Some(v);
             }
         }
