@@ -115,3 +115,17 @@ where
         n.interval().during(query)
     }
 }
+
+pub(crate) struct ContainsPruner;
+impl<R, V> PruningOracle<R, V> for ContainsPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.start <= *subtree_root.subtree_max()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().contains(query)
+    }
+}
