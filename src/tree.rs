@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::Range};
 
 use crate::{
     interval::Interval,
-    iter::{OverlapsPruner, OwnedIter, PruningIter, RefIter},
+    iter::{MeetsPruner, OverlapsPruner, OwnedIter, PruningIter, RefIter},
     node::{remove_recurse, Node, RemoveResult},
 };
 
@@ -210,8 +210,7 @@ where
     ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
         self.0
             .iter()
-            .flat_map(|v| RefIter::new(v))
-            .filter(|n| n.interval().meets(range))
+            .flat_map(|v| PruningIter::<_, _, MeetsPruner>::new(v, range))
             .map(|v| (v.interval().as_range(), v.value()))
     }
 

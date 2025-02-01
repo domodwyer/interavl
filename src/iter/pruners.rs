@@ -17,3 +17,17 @@ where
         n.interval().overlaps(query)
     }
 }
+
+pub(crate) struct MeetsPruner;
+impl<R, V> PruningOracle<R, V> for MeetsPruner
+where
+    R: Ord,
+{
+    fn visit_right(subtree_root: &Node<R, V>, query: &Range<R>) -> bool {
+        query.start >= *subtree_root.interval().start()
+    }
+
+    fn filter_yield(n: &Node<R, V>, query: &Range<R>) -> bool {
+        n.interval().meets(query)
+    }
+}
