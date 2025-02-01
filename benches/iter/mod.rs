@@ -63,23 +63,33 @@ where
     });
 }
 
-fn bench_overlaps<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<u16, usize>)
-where
-    M: Measurement,
-{
-    let bench_name = BenchName {
-        n_values,
-        bench_name: "overlaps",
-    };
+macro_rules! iter_bench {
+    (
+        $name:ident
+    ) => {
+        paste::paste! {
+            fn [<bench_ $name>]<M>(n_values: usize, g: &mut BenchmarkGroup<M>, t: &IntervalTree<u16, usize>)
+            where
+                M: Measurement,
+            {
+                let bench_name = BenchName {
+                    n_values,
+                    bench_name: stringify!($name),
+                };
 
-    g.throughput(Throughput::Elements(n_values as _));
-    // Values per second
-    g.bench_function(BenchmarkId::from(bench_name), |b| {
-        b.iter(|| {
-            let iter = t.iter_overlaps(&(42..100));
-            for v in iter {
-                black_box(v);
+                g.throughput(Throughput::Elements(n_values as _));
+                // Values per second
+                g.bench_function(BenchmarkId::from(bench_name), |b| {
+                    b.iter(|| {
+                        let iter = t.[<iter_ $name>](&(42..100));
+                        for v in iter {
+                            black_box(v);
+                        }
+                    })
+                });
             }
-        })
-    });
+        }
+    }
 }
+
+iter_bench!(overlaps);
