@@ -354,12 +354,15 @@ impl<R, V> std::iter::IntoIterator for IntervalTree<R, V> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::{
+        collections::{HashMap, HashSet},
+        sync::{atomic::AtomicUsize, Arc},
+    };
 
     use proptest::prelude::*;
 
     use super::*;
-    use crate::test_utils::arbitrary_range;
+    use crate::test_utils::{arbitrary_range, Lfsr, NodeFilterCount};
 
     #[test]
     fn test_insert_contains() {
@@ -635,6 +638,73 @@ mod tests {
 
             assert_eq!(tuples, values);
         }
+    }
+
+    macro_rules! assert_pruning_stats {
+        (
+            $t:ident,
+            $ty:ty,
+            want_yield = $want_yield:literal,
+            want_visited = $want_visited:literal
+        ) => {
+            paste::paste! {{
+                // Walk the tree with each pruning iter, and record the number of nodes
+                // that were visited after pruning.
+                let n_filtered = Arc::new(AtomicUsize::new(0));
+                let iter = PruningIter::new(
+                    $t.0.as_deref().unwrap(),
+                    &Range { start: 42, end: 1042 },
+                    NodeFilterCount::new($ty, Arc::clone(&n_filtered)),
+                );
+
+                // Validate the expected number of nodes are yielded.
+                let n_yielded = iter.count();
+                assert_eq!(n_yielded, $want_yield, "yield count differs for {}", stringify!($ty));
+
+                // And the number of nodes that were filtered after subtree pruning.
+                let n_filtered = n_filtered.load(std::sync::atomic::Ordering::Relaxed);
+                assert_eq!(n_filtered, $want_visited, "visited count differs for {}", stringify!($ty));
+            }}
+        };
+    }
+
+    /// Quantify the effectiveness of subtree pruning against a nominal tree.
+    #[test]
+    fn test_pruning_effectiveness() {
+        const N: usize = (u16::MAX as usize - 1) / 2;
+
+        let mut t: IntervalTree<_, usize> = IntervalTree::default();
+
+        // Generate a tree of random, but valid intervals.
+        let mut a = Lfsr::new(42);
+        let mut b = Lfsr::new(24);
+
+        for i in 0..N {
+            let a = a.next();
+            let b = b.next();
+
+            let r = Range {
+                start: a.min(b),
+                end: a.max(b),
+            };
+
+            t.insert(r, i);
+        }
+
+        assert_pruning_stats!(t, OverlapsPruner, want_yield = 1043, want_visited = 1044);
+        assert_pruning_stats!(t, PrecedesPruner, want_yield = 1, want_visited = 49);
+        assert_pruning_stats!(
+            t,
+            PrecededByPruner,
+            want_yield = 31722,
+            want_visited = 32759
+        );
+        assert_pruning_stats!(t, MeetsPruner, want_yield = 0, want_visited = 49);
+        assert_pruning_stats!(t, MetByPruner, want_yield = 1, want_visited = 32759);
+        assert_pruning_stats!(t, StartsPruner, want_yield = 0, want_visited = 49);
+        assert_pruning_stats!(t, FinishesPruner, want_yield = 0, want_visited = 32759);
+        assert_pruning_stats!(t, DuringPruner, want_yield = 24, want_visited = 1045);
+        assert_pruning_stats!(t, ContainsPruner, want_yield = 48, want_visited = 49);
     }
 
     /// Generate a proptest that asserts the [`IntervalTree`] returns the same
