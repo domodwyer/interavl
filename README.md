@@ -44,9 +44,9 @@ millions / billions of keys per second:
 
 | Tree Size     | Build Tree | Lookup Value | Stabbing Query |
 | ------------- | ---------- | ------------ | -------------- |
-| 100 tuples    | 3µs        | 7ns          | 59ns           |
-| 1,000 tuples  | 81µs       | 8ns          | 101ns          |
-| 10,000 tuples | 1ms        | 9ns          | 172ns          |
+| 100 tuples    | 1.5µs      | 6ns          | 39ns           |
+| 1,000 tuples  | 31µs       | 8ns          | 67ns           |
+| 10,000 tuples | 777us      | 9ns          | 115ns          |
 
 Interval stabbing and membership queries are particularly fast due to the use of
 subtree pruning to reduce the search space.[^filter-perf]
