@@ -136,7 +136,7 @@ where
     pub fn iter_overlaps<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, OverlapsPruner))
@@ -160,7 +160,7 @@ where
     pub fn iter_precedes<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, PrecedesPruner))
@@ -184,7 +184,7 @@ where
     pub fn iter_preceded_by<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, PrecededByPruner))
@@ -208,7 +208,7 @@ where
     pub fn iter_meets<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, MeetsPruner))
@@ -232,7 +232,7 @@ where
     pub fn iter_met_by<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, MetByPruner))
@@ -256,7 +256,7 @@ where
     pub fn iter_starts<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, StartsPruner))
@@ -280,7 +280,7 @@ where
     pub fn iter_finishes<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, FinishesPruner))
@@ -304,7 +304,7 @@ where
     pub fn iter_during<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, DuringPruner))
@@ -328,7 +328,7 @@ where
     pub fn iter_contains<'a>(
         &'a self,
         range: &'a Range<R>,
-    ) -> impl Iterator<Item = (&Range<R>, &V)> + 'a {
+    ) -> impl Iterator<Item = (&'a Range<R>, &'a V)> {
         self.0
             .iter()
             .flat_map(|v| PruningIter::new(v, range, ContainsPruner))
