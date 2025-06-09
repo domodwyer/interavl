@@ -13,6 +13,7 @@ pub(super) enum RemoveResult<T> {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(crate) struct Node<R, V> {
     /// Child nodes pointers.
     left: Option<Box<Node<R, V>>>,

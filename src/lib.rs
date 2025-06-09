@@ -37,6 +37,7 @@ mod node;
 mod tree;
 
 pub use tree::*;
-
+#[cfg(feature = "serde")]
+extern crate serde;
 #[cfg(test)]
 mod test_utils;

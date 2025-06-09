@@ -49,6 +49,7 @@ use crate::{
 /// [`Arc`]: std::sync::Arc
 /// [`Rc`]: std::rc::Rc
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntervalTree<R, V>(Option<Box<Node<R, V>>>);
 
 impl<R, V> Default for IntervalTree<R, V> {
