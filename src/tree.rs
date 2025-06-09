@@ -9,6 +9,9 @@ use crate::{
     node::{remove_recurse, Node, RemoveResult},
 };
 
+#[cfg(feature = "serde")]
+extern crate serde;
+
 /// An [`IntervalTree`] stores `(interval, value)` tuple mappings, enabling
 /// efficient lookup and querying of intervals that match a variety of temporal
 /// relations described by [Allen's interval algebra].

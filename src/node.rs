@@ -2,6 +2,9 @@ use std::{cmp::Ordering, fmt::Debug, ops::Range};
 
 use crate::interval::Interval;
 
+#[cfg(feature = "serde")]
+extern crate serde;
+
 #[derive(Debug)]
 pub(super) enum RemoveResult<T> {
     /// The value was removed from the tree.
