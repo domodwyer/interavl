@@ -9,6 +9,11 @@ use crate::{
     node::{remove_recurse, Node, RemoveResult},
 };
 
+#[cfg(feature = "serde")]
+extern crate serde;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// An [`IntervalTree`] stores `(interval, value)` tuple mappings, enabling
 /// efficient lookup and querying of intervals that match a variety of temporal
 /// relations described by [Allen's interval algebra].
@@ -49,6 +54,7 @@ use crate::{
 /// [`Arc`]: std::sync::Arc
 /// [`Rc`]: std::rc::Rc
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntervalTree<R, V>(Option<Box<Node<R, V>>>);
 
 impl<R, V> Default for IntervalTree<R, V> {

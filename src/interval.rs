@@ -1,4 +1,8 @@
 use std::{cmp::Ordering, fmt::Display, ops::Range};
+#[cfg(feature = "serde")]
+extern crate serde;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// A totally-ordered interval, convertible from and infallibly comparable to a
 /// [`Range`].
@@ -6,6 +10,7 @@ use std::{cmp::Ordering, fmt::Display, ops::Range};
 /// An [`Interval`] is ordered by the [`Range`] lower bound, and tie-braked with
 /// the upper bound.
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(crate) struct Interval<T>(Range<T>);
 
 impl<T> Interval<T> {

@@ -2,6 +2,11 @@ use std::{cmp::Ordering, fmt::Debug, ops::Range};
 
 use crate::interval::Interval;
 
+#[cfg(feature = "serde")]
+extern crate serde;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug)]
 pub(super) enum RemoveResult<T> {
     /// The value was removed from the tree.
@@ -13,6 +18,7 @@ pub(super) enum RemoveResult<T> {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(crate) struct Node<R, V> {
     /// Child nodes pointers.
     left: Option<Box<Node<R, V>>>,
