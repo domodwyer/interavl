@@ -11,6 +11,8 @@ use crate::{
 
 #[cfg(feature = "serde")]
 extern crate serde;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// An [`IntervalTree`] stores `(interval, value)` tuple mappings, enabling
 /// efficient lookup and querying of intervals that match a variety of temporal

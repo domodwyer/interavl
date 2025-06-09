@@ -4,6 +4,8 @@ use crate::interval::Interval;
 
 #[cfg(feature = "serde")]
 extern crate serde;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub(super) enum RemoveResult<T> {
