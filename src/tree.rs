@@ -334,6 +334,13 @@ where
             .flat_map(|v| PruningIter::new(v, range, ContainsPruner))
             .map(|v| (v.interval().as_range(), v.value()))
     }
+
+    /// Return the maximum interval' end/stop (right-end) stored in the tree.
+    /// If the tree is empty, e.g., contains no thing, [`None`] is returned.
+    /// Otherwise, an immutable reference to the maximum end value is returned.
+    pub fn max_interval_end(&self) -> Option<&R> {
+        self.0.as_ref().map(|root| root.subtree_max())
+    }
 }
 
 /// Take ownership of this [`IntervalTree`] instance and iterate over all
