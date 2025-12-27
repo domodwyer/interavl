@@ -789,6 +789,9 @@ mod tests {
             None => return,
         };
 
+        let tree_max = t.max_interval_end();
+        let mut nodes_max = None;
+
         // Perform a pre-order traversal of the tree.
         let mut stack = vec![root];
         while let Some(n) = stack.pop() {
@@ -851,6 +854,17 @@ mod tests {
                 .max(n.right().map(|v| v.subtree_max()));
             let want_max = child_max.max(Some(n.interval().end())).unwrap();
             assert_eq!(want_max, n.subtree_max());
+
+            // Track the maximum end value across all nodes, with the value
+            // computed in invariant 5.
+            if nodes_max.is_none() {
+                nodes_max = Some(want_max);
+            } else {
+                nodes_max = nodes_max.max(Some(want_max));
+            }
         }
+
+        // Assert that the tree's reported max matches the computed max.
+        assert_eq!(tree_max, nodes_max);
     }
 }
