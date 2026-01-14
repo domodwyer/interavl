@@ -36,14 +36,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create GitHub release
-        if: ${{ env.ACT }}
+        if: ${{ ! env.ACT }}
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
 
   # Publish the crate (scoping the secret to only this job)
   publish_crate:
-    needs: [build, test, lint, github_release]
+    needs: [build, test, lint]
     permissions:
       contents: write
     env:
