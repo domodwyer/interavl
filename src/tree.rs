@@ -334,6 +334,13 @@ where
             .flat_map(|v| PruningIter::new(v, range, ContainsPruner))
             .map(|v| (v.interval().as_range(), v.value()))
     }
+
+    /// Return the maximum interval' end/stop (right-end) stored in the tree.
+    /// If the tree is empty, e.g., contains no thing, [`None`] is returned.
+    /// Otherwise, an immutable reference to the maximum end value is returned.
+    pub fn max_interval_end(&self) -> Option<&R> {
+        self.0.as_ref().map(|root| root.subtree_max())
+    }
 }
 
 /// Take ownership of this [`IntervalTree`] instance and iterate over all
@@ -782,6 +789,9 @@ mod tests {
             None => return,
         };
 
+        let tree_max = t.max_interval_end();
+        let mut nodes_max = None;
+
         // Perform a pre-order traversal of the tree.
         let mut stack = vec![root];
         while let Some(n) = stack.pop() {
@@ -844,6 +854,17 @@ mod tests {
                 .max(n.right().map(|v| v.subtree_max()));
             let want_max = child_max.max(Some(n.interval().end())).unwrap();
             assert_eq!(want_max, n.subtree_max());
+
+            // Track the maximum end value across all nodes, with the value
+            // computed in invariant 5.
+            if nodes_max.is_none() {
+                nodes_max = Some(want_max);
+            } else {
+                nodes_max = nodes_max.max(Some(want_max));
+            }
         }
+
+        // Assert that the tree's reported max matches the computed max.
+        assert_eq!(tree_max, nodes_max);
     }
 }
