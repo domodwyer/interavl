@@ -1,6 +1,7 @@
 use std::{fmt::Debug, ops::Range};
 
 use crate::{
+    entry::Entry,
     interval::Interval,
     iter::{
         ContainsPruner, DuringPruner, FinishesPruner, MeetsPruner, MetByPruner, OverlapsPruner,
@@ -103,6 +104,28 @@ where
             RemoveResult::Removed(v) => Some(v),
             RemoveResult::ParentUnlink => unreachable!(),
         }
+    }
+
+    /// Gets the given key's corresponding entry in the tree for in-place
+    /// manipulation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use interavl::IntervalTree;
+    ///
+    /// let mut count: IntervalTree<i32, u32> = IntervalTree::default();
+    ///
+    /// // Count the number of times we see each interval
+    /// for range in [0..10, 5..15, 0..10, 20..30, 0..10].iter().cloned() {
+    ///     *count.entry(range).or_insert(0) += 1;
+    /// }
+    ///
+    /// assert_eq!(count.get(&(0..10)), Some(&3));
+    /// assert_eq!(count.get(&(5..15)), Some(&1));
+    /// ```
+    pub fn entry(&mut self, range: Range<R>) -> Entry<'_, R, V> {
+        Entry::new(range, self)
     }
 
     /// Iterate over references of all `(interval, value)` tuples stored in this
