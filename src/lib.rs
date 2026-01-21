@@ -30,11 +30,13 @@
 #[cfg(test)]
 use criterion as _;
 
+mod entry;
 mod interval;
 mod iter;
 mod node;
 mod tree;
 
+pub use entry::*;
 pub use tree::*;
 
 #[cfg(test)]
