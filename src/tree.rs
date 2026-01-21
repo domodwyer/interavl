@@ -45,6 +45,13 @@ use crate::{
 /// This implementation will accept invalid intervals such as `[42, 0)` without
 /// panicking but iteration results are undefined for these invalid intervals.
 ///
+/// ## Multiple Values
+///
+/// The tree stores one value per interval, replicating the semantics of the
+/// standard library containers. Storing multiple values for a single interval
+/// is possible by using an appropriate container as a value (e.g. a `Vec` or
+/// `HashSet` for O(1) lookups).
+///
 /// [Allen's interval algebra]:
 ///     https://en.wikipedia.org/wiki/Allen%27s_interval_algebra
 /// [`Arc`]: std::sync::Arc
@@ -57,8 +64,6 @@ impl<R, V> Default for IntervalTree<R, V> {
         Self(Default::default())
     }
 }
-
-// TODO(dom): entry + entry_mut -> Vec
 
 impl<R, V> IntervalTree<R, V>
 where
