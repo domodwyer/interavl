@@ -1,3 +1,4 @@
+#![no_std]
 #![doc = include_str!("../README.md")]
 #![deny(rustdoc::broken_intra_doc_links, rust_2018_idioms)]
 #![allow(clippy::default_constructed_unit_structs)]
@@ -29,6 +30,13 @@
 
 #[cfg(test)]
 use criterion as _;
+
+#[macro_use]
+#[cfg(test)]
+extern crate std;
+
+#[macro_use]
+extern crate alloc;
 
 mod entry;
 mod interval;

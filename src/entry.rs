@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::Range};
+use core::{fmt::Debug, ops::Range};
 
 use crate::IntervalTree;
 
@@ -306,6 +306,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::prelude::v1::{Default, None, Option, Some, String, ToString, assert, assert_eq, test};
     use super::*;
 
     #[test]
