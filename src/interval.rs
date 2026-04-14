@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Display, ops::Range};
+use std::{cmp::Ordering, fmt::Display, ops::Range, range::Range as NewRange};
 
 /// A totally-ordered interval, convertible from and infallibly comparable to a
 /// [`Range`].
@@ -118,6 +118,36 @@ where
 impl<T> From<Range<T>> for Interval<T> {
     fn from(value: Range<T>) -> Self {
         Self(value)
+    }
+}
+
+impl<T> PartialOrd<NewRange<T>> for Interval<T>
+where
+    T: Ord + Eq,
+{
+    fn partial_cmp(&self, other: &NewRange<T>) -> Option<Ordering> {
+        // To provide ordering of an interval, the lower bound is used as the
+        // primary ordering value, falling back to the upper bound when the
+        // lower bounds are equal.
+        Some(match self.0.start.cmp(&other.start) {
+            Ordering::Equal => self.0.end.cmp(&other.end),
+            v => v,
+        })
+    }
+}
+
+impl<T> PartialEq<NewRange<T>> for Interval<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &NewRange<T>) -> bool {
+        self.0.start == other.start && self.0.end == other.end
+    }
+}
+
+impl<T> From<NewRange<T>> for Interval<T> {
+    fn from(value: NewRange<T>) -> Self {
+        Self(value.into())
     }
 }
 
