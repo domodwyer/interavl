@@ -55,8 +55,8 @@ use crate::{
 ///
 /// [Allen's interval algebra]:
 ///     https://en.wikipedia.org/wiki/Allen%27s_interval_algebra
-/// [`Arc`]: std::sync::Arc
-/// [`Rc`]: std::rc::Rc
+/// [`Arc`]: alloc::sync::Arc
+/// [`Rc`]: alloc::rc::Rc
 #[derive(Debug, Clone)]
 pub struct IntervalTree<R, V>(Option<Box<Node<R, V>>>);
 
