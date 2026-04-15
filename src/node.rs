@@ -1,5 +1,5 @@
-use core::{cmp::Ordering, fmt::Debug, ops::Range};
 use alloc::boxed::Box;
+use core::{cmp::Ordering, fmt::Debug, ops::Range};
 
 use crate::interval::Interval;
 

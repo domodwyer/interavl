@@ -1,5 +1,5 @@
-use core::{fmt::Debug, ops::Range};
 use alloc::boxed::Box;
+use core::{fmt::Debug, ops::Range};
 
 use crate::{
     entry::Entry,

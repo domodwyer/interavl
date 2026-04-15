@@ -306,8 +306,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::prelude::v1::{Default, None, Option, Some, String, ToString, assert, assert_eq, test};
     use super::*;
+    use std::{
+        assert, assert_eq,
+        prelude::v1::{test, Default, None, Option, Some, String, ToString},
+    };
 
     #[test]
     fn test_entry_or_insert() {
