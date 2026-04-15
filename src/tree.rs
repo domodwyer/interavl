@@ -1,4 +1,5 @@
-use std::{fmt::Debug, ops::Range};
+use alloc::boxed::Box;
+use core::{fmt::Debug, ops::Range};
 
 use crate::{
     entry::Entry,
@@ -54,8 +55,8 @@ use crate::{
 ///
 /// [Allen's interval algebra]:
 ///     https://en.wikipedia.org/wiki/Allen%27s_interval_algebra
-/// [`Arc`]: std::sync::Arc
-/// [`Rc`]: std::rc::Rc
+/// [`Arc`]: alloc::sync::Arc
+/// [`Rc`]: alloc::rc::Rc
 #[derive(Debug, Clone)]
 pub struct IntervalTree<R, V>(Option<Box<Node<R, V>>>);
 
@@ -378,7 +379,7 @@ where
 ///
 /// The returned [`Iterator`] yields values from lowest to highest ordered by
 /// the interval lower bound, with ties broken by the upper bound.
-impl<R, V> std::iter::IntoIterator for IntervalTree<R, V> {
+impl<R, V> core::iter::IntoIterator for IntervalTree<R, V> {
     type Item = (Range<R>, V);
     type IntoIter = OwnedIter<R, V>;
 
@@ -389,6 +390,7 @@ impl<R, V> std::iter::IntoIterator for IntervalTree<R, V> {
 
 #[cfg(test)]
 mod tests {
+    use std::prelude::v1::*;
     use std::{
         collections::{HashMap, HashSet},
         sync::{atomic::AtomicUsize, Arc},

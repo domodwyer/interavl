@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Display, ops::Range};
+use core::{cmp::Ordering, fmt::Display, ops::Range};
 
 /// A totally-ordered interval, convertible from and infallibly comparable to a
 /// [`Range`].
@@ -27,7 +27,7 @@ impl<T> Display for Interval<T>
 where
     T: Display,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}..{}", self.start(), self.end())
     }
 }

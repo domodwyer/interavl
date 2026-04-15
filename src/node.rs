@@ -1,4 +1,5 @@
-use std::{cmp::Ordering, fmt::Debug, ops::Range};
+use alloc::boxed::Box;
+use core::{cmp::Ordering, fmt::Debug, ops::Range};
 
 use crate::interval::Interval;
 
@@ -56,7 +57,7 @@ impl<R, V> Node<R, V> {
         let child = match interval.cmp(&self.interval) {
             Ordering::Less => &mut self.left,
             Ordering::Equal => {
-                return Some(std::mem::replace(&mut self.value, value));
+                return Some(core::mem::replace(&mut self.value, value));
             }
             Ordering::Greater => &mut self.right,
         };
@@ -189,7 +190,7 @@ impl<R, V> Node<R, V> {
                     min.left = self.left.take();
                     min.right = Some(right);
 
-                    std::mem::replace(self, min)
+                    core::mem::replace(self, min)
                 }
 
                 None => {
@@ -201,7 +202,7 @@ impl<R, V> Node<R, V> {
                     debug_assert!(right.left.is_none());
 
                     right.left = self.left.take();
-                    std::mem::replace(self, right)
+                    core::mem::replace(self, right)
                 }
             }
         } else if let Some(left) = self.left.take() {
@@ -210,7 +211,7 @@ impl<R, V> Node<R, V> {
             debug_assert!(self.right.is_none());
             debug_assert_ne!(self.height, 0);
 
-            std::mem::replace(self, left)
+            core::mem::replace(self, left)
         } else {
             // Otherwise "self" has no children.
             debug_assert!(self.left.is_none());
@@ -378,7 +379,7 @@ where
     R: Ord + Clone,
 {
     let mut p = x.right.take().unwrap();
-    std::mem::swap(x, &mut p);
+    core::mem::swap(x, &mut p);
 
     p.right = x.left.take();
     update_height(&mut p);
@@ -409,7 +410,7 @@ where
     R: Ord + Clone,
 {
     let mut p = y.left.take().unwrap();
-    std::mem::swap(y, &mut p);
+    core::mem::swap(y, &mut p);
 
     p.left = y.right.take();
     update_height(&mut p);
@@ -447,7 +448,7 @@ where
             // left node of "root" (if any).
             let left_right = root.left_mut().and_then(|v| v.right.take());
 
-            std::mem::replace(&mut root.left, left_right)
+            core::mem::replace(&mut root.left, left_right)
         }
     };
 
@@ -514,10 +515,10 @@ where
             v.left_mut().map(rotate_left);
             rotate_right(v);
         }
-        (..=-2) if v.right().map(balance).unwrap_or_default() <= 0 => {
+        ..=-2 if v.right().map(balance).unwrap_or_default() <= 0 => {
             rotate_left(v);
         }
-        (..=-2) => {
+        ..=-2 => {
             v.right_mut().map(rotate_right);
             rotate_left(v);
         }
