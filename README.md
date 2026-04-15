@@ -37,6 +37,8 @@ for (interval, name) in t.iter_overlaps(&(42..50)) {
 }
 ```
 
+This crate is `#![no_std]`, but requires `alloc`.
+
 ## Performance
 
 Lookup operations against an `IntervalTree` are _fast_, executing against
