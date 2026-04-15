@@ -15,18 +15,18 @@ pub(crate) trait PruningOracle<R, V> {
 /// An [`Iterator`] that performs a depth-first, in-order walk of a subtree and
 /// yields [`Node`] instances that match a pruning predicate.
 #[derive(Debug)]
-pub(crate) struct PruningIter<'a, R, V, T> {
-    query: &'a Range<R>,
+pub(crate) struct PruningIter<'a, 'b, R, V, T> {
+    query: &'b Range<R>,
     stack: Vec<&'a Node<R, V>>,
     pruner: T,
 }
 
-impl<'a, R, V, T> PruningIter<'a, R, V, T>
+impl<'a, 'b, R, V, T> PruningIter<'a, 'b, R, V, T>
 where
     R: Ord,
     T: PruningOracle<R, V>,
 {
-    pub(crate) fn new(root: &'a Node<R, V>, query: &'a Range<R>, pruner: T) -> Self {
+    pub(crate) fn new(root: &'a Node<R, V>, query: &'b Range<R>, pruner: T) -> Self {
         let mut this = Self {
             stack: vec![],
             query,
@@ -50,7 +50,7 @@ where
     }
 }
 
-impl<'a, R, V, T> Iterator for PruningIter<'a, R, V, T>
+impl<'a, 'b, R, V, T> Iterator for PruningIter<'a, 'b, R, V, T>
 where
     R: Ord,
     T: PruningOracle<R, V>,
